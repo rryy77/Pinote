@@ -27,6 +27,7 @@ import { TagInput } from '@/components/pinote/tag-input';
 import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import type { CategoryId } from '@/types/memo';
 
@@ -250,6 +251,20 @@ export default function MemoDetailScreen() {
             </View>
 
             <View style={styles.actions}>
+              <Pressable
+                onPress={() => {
+                  useMapFocus.getState().requestFocus({
+                    kind: 'memo',
+                    id: memo.id,
+                    lat: memo.lat,
+                    lng: memo.lng,
+                  });
+                  router.dismissAll();
+                }}
+                style={({ pressed }) => [styles.addToCollection, pressed && { opacity: 0.7 }]}>
+                <Ionicons name="map-outline" size={18} color={colors.brand} />
+                <Text style={styles.addToCollectionText}>地図で見る</Text>
+              </Pressable>
               <Pressable
                 onPress={() => setCollectionPickerOpen(true)}
                 style={({ pressed }) => [styles.addToCollection, pressed && { opacity: 0.7 }]}>

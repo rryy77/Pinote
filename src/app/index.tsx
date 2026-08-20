@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -28,6 +28,7 @@ import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCurrentLocation } from '@/location/use-current-location';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import { clusterMemos } from '@/utils/cluster';
@@ -36,6 +37,27 @@ import { hasOnboarded, setOnboarded } from '@/utils/onboarding';
 
 /** Fallback camera (Tokyo Station) until the user's location resolves. */
 const DEFAULT_CAMERA = { latitude: 35.681236, longitude: 139.767125, zoom: 13 };
+
+/** A camera that frames all given points (center + a zoom that fits their span). */
+function cameraForPoints(
+  pts: { latitude: number; longitude: number }[],
+): { latitude: number; longitude: number; zoom: number } | null {
+  if (pts.length === 0) return null;
+  if (pts.length === 1) return { ...pts[0], zoom: 15 };
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  for (const p of pts) {
+    minLat = Math.min(minLat, p.latitude);
+    maxLat = Math.max(maxLat, p.latitude);
+    minLng = Math.min(minLng, p.longitude);
+    maxLng = Math.max(maxLng, p.longitude);
+  }
+  const span = Math.max(maxLat - minLat, maxLng - minLng) || 0.01;
+  const zoom = Math.max(3, Math.min(16, Math.log2(360 / span) - 1.2));
+  return { latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2, zoom };
+}
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 /** Radius large enough for the theme-reveal circle to cover the whole screen. */
@@ -49,13 +71,10 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const memos = useMemoStore((s) => s.memos);
   const { coords } = useCurrentLocation();
-  const { lat, lng, collection } = useLocalSearchParams<{
-    lat?: string;
-    lng?: string;
-    collection?: string;
-  }>();
   const collections = useCollectionStore((s) => s.collections);
   const allItems = useCollectionStore((s) => s.items);
+  const mapFocus = useMapFocus((s) => s.focus);
+  const clearMapFocus = useMapFocus((s) => s.clearFocus);
   const mapRef = useRef<PinoteMapHandle>(null);
   const didCenter = useRef(false);
   const centerRef = useRef<{ latitude: number; longitude: number }>({
@@ -110,23 +129,36 @@ export default function HomeScreen() {
     [allItems, collectionId],
   );
 
+  // Consume a "show this on the map" request (from the library / detail screens),
+  // so the reveal always happens on this same map — centered and highlighted.
   useEffect(() => {
-    setCollectionId(collection || null);
-  }, [collection]);
+    if (!mapFocus) return;
+    didCenter.current = true;
+    setMode('view');
+    setMenuOpen(false);
 
-  useEffect(() => {
-    if (collectionId && collectionItems.length > 0) {
-      const first = collectionItems[0];
-      setMode('view');
+    if (mapFocus.kind === 'collection') {
+      setCollectionId(mapFocus.id);
       setSelectedId(null);
-      mapRef.current?.setCamera({ latitude: first.lat, longitude: first.lng, zoom: 13 });
+      const pts = allItems
+        .filter((i) => i.collectionId === mapFocus.id)
+        .map((i) => ({ latitude: i.lat, longitude: i.lng }));
+      const cam = cameraForPoints(pts);
+      if (cam) setTimeout(() => mapRef.current?.setCamera(cam), 120);
+    } else {
+      // A single memo: keep every pin visible but center on and highlight this one.
+      setCollectionId(null);
+      setSelectedId(mapFocus.id);
+      setTimeout(
+        () => mapRef.current?.setCamera({ latitude: mapFocus.lat, longitude: mapFocus.lng, zoom: 16 }),
+        120,
+      );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collectionId]);
+    clearMapFocus();
+  }, [mapFocus, allItems, clearMapFocus]);
 
   const clearCollection = () => {
     setCollectionId(null);
-    router.setParams({ collection: '' });
   };
 
   // Selecting a category shows only that category's memos, plus Apple's nearby
@@ -138,7 +170,11 @@ export default function HomeScreen() {
   const memoLayer = useMemo(() => {
     const markerList: PinMarker[] = [];
     const clusterList: ClusterMarker[] = [];
-    for (const p of clusterMemos(visibleMemos, zoom)) {
+    // Keep the selected memo out of clustering so it's never hidden inside a
+    // bubble — we draw it separately, on top, with an accent highlight.
+    const highlight = selectedId ? visibleMemos.find((m) => m.id === selectedId) ?? null : null;
+    const forCluster = highlight ? visibleMemos.filter((m) => m.id !== highlight.id) : visibleMemos;
+    for (const p of clusterMemos(forCluster, zoom)) {
       if (p.type === 'memo') {
         const c = getCategory(p.memo.category);
         markerList.push({
@@ -158,8 +194,18 @@ export default function HomeScreen() {
         });
       }
     }
+    if (highlight) {
+      markerList.push({
+        id: highlight.id,
+        latitude: highlight.lat,
+        longitude: highlight.lng,
+        title: highlight.title,
+        tint: colors.brand,
+        symbol: 'mappin.circle.fill',
+      });
+    }
     return { markers: markerList, clusters: clusterList };
-  }, [visibleMemos, zoom]);
+  }, [visibleMemos, zoom, selectedId]);
 
   // In collection mode the map shows just that collection's places: visited pins
   // keep their category color, candidates are muted grey.
@@ -202,23 +248,6 @@ export default function HomeScreen() {
     () => (selectedId ? memos.find((m) => m.id === selectedId) ?? null : null),
     [memos, selectedId],
   );
-
-  const focusLat = Number(lat);
-  const focusLng = Number(lng);
-  const hasFocus = Number.isFinite(focusLat) && Number.isFinite(focusLng);
-
-  // Center on a memo when opened from its detail screen ("地図で見る").
-  useEffect(() => {
-    if (hasFocus) {
-      didCenter.current = true;
-      centerRef.current = { latitude: focusLat, longitude: focusLng };
-      const id = setTimeout(
-        () => mapRef.current?.setCamera({ latitude: focusLat, longitude: focusLng, zoom: 16 }),
-        80,
-      );
-      return () => clearTimeout(id);
-    }
-  }, [hasFocus, focusLat, focusLng]);
 
   // Center the map on the user the first time their location resolves.
   useEffect(() => {
@@ -316,13 +345,7 @@ export default function HomeScreen() {
         route={activeCollection ? collectionRoute : undefined}
         routeColor={activeCollection?.color}
         poiCategories={poiCategories}
-        initialCamera={
-          hasFocus
-            ? { latitude: focusLat, longitude: focusLng, zoom: 16 }
-            : coords
-              ? { ...coords, zoom: 15 }
-              : DEFAULT_CAMERA
-        }
+        initialCamera={coords ? { ...coords, zoom: 15 } : DEFAULT_CAMERA}
         onMarkerPress={onMarkerPress}
         onClusterPress={expandCluster}
         onMapPress={() => {

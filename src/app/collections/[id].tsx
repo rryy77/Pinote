@@ -22,6 +22,7 @@ import { ShareCard } from '@/components/pinote/share-card';
 import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import type { CollectionItem } from '@/types/collection';
 
@@ -189,7 +190,10 @@ export default function CollectionDetailScreen() {
             icon="map"
             label="地図で見る"
             disabled={total === 0}
-            onPress={() => router.navigate({ pathname: '/', params: { collection: collection.id } })}
+            onPress={() => {
+              useMapFocus.getState().requestFocus({ kind: 'collection', id: collection.id });
+              router.dismissAll();
+            }}
           />
         </View>
 
