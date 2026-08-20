@@ -61,6 +61,11 @@ export function MemoCard({ memo, distance, onClose, onOpenDetail }: Props) {
               {memo.body}
             </Text>
           )}
+          {memo.tags.length > 0 && (
+            <Text style={styles.tags} numberOfLines={1}>
+              {memo.tags.map((t) => `#${t}`).join(' ')}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -162,6 +167,11 @@ const styles = StyleSheet.create({
   preview: {
     fontSize: 13,
     color: colors.subInk,
+  },
+  tags: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.brand,
   },
   footer: {
     flexDirection: 'row',

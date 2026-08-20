@@ -37,12 +37,18 @@ export type PinoteMapHandle = {
   setCamera: (target: CameraTarget) => void;
 };
 
+type LatLng = { latitude: number; longitude: number };
+
 type Props = {
   markers: PinMarker[];
   clusters?: ClusterMarker[];
   initialCamera?: CameraTarget;
   /** Show the blue user-location dot. */
   showUserLocation?: boolean;
+  /** Ordered coordinates to draw as a route line (e.g. a trip's visit order). */
+  route?: LatLng[];
+  /** Route line color (defaults to the brand accent). */
+  routeColor?: string;
   /** Apple POI category names to display (iOS). Empty hides all POIs. */
   poiCategories?: string[];
   onMarkerPress?: (id: string) => void;
@@ -61,6 +67,8 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
     clusters = [],
     initialCamera,
     showUserLocation = true,
+    route,
+    routeColor,
     poiCategories = [],
     onMarkerPress,
     onClusterPress,
@@ -69,6 +77,17 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
   },
   ref,
 ) {
+  const routeLine =
+    route && route.length > 1
+      ? [
+          {
+            id: 'route',
+            coordinates: route.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+            color: routeColor ?? colors.brand,
+            width: 4,
+          },
+        ]
+      : undefined;
   const appleRef = useRef<AppleMaps.MapView>(null);
   const googleRef = useRef<GoogleMaps.MapView>(null);
 
@@ -128,6 +147,7 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
           togglePitchEnabled: false,
           compassEnabled: false,
         }}
+        polylines={routeLine}
         markers={markers.map((m) => ({
           id: m.id,
           coordinates: { latitude: m.latitude, longitude: m.longitude },
@@ -171,6 +191,7 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
         cameraPosition={cameraPosition}
         properties={{ isMyLocationEnabled: showUserLocation }}
         uiSettings={{ myLocationButtonEnabled: showUserLocation }}
+        polylines={routeLine}
         markers={[
           ...markers.map((m) => ({
             id: m.id,

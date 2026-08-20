@@ -15,6 +15,8 @@ export type Memo = {
   rating: number;
   /** "Want to revisit" flag. */
   wantRevisit: boolean;
+  /** Free-form tags (without the leading #), e.g. ["絶景", "穴場"]. */
+  tags: string[];
   /** Persistent local uri of an attached photo, or null. */
   photoUri: string | null;
   /** Creation time, epoch milliseconds. */
@@ -35,5 +37,6 @@ export type NewMemo = {
   lng: number;
   rating?: number;
   wantRevisit?: boolean;
+  tags?: string[];
   photoUri?: string | null;
 };

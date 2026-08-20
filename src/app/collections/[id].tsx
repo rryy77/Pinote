@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -12,10 +12,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 
 import { Button } from '@/components/pinote/button';
 import { MemoRow } from '@/components/pinote/memo-row';
 import { ProgressBar } from '@/components/pinote/progress-bar';
+import { ShareCard } from '@/components/pinote/share-card';
 import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCollectionStore } from '@/store/useCollectionStore';
@@ -35,6 +38,8 @@ export default function CollectionDetailScreen() {
   const memos = useMemoStore((s) => s.memos);
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const shareRef = useRef<View>(null);
 
   const items = useMemo(() => allItems.filter((i) => i.collectionId === id), [allItems, id]);
 
@@ -44,6 +49,16 @@ export default function CollectionDetailScreen() {
     for (const it of items) (it.visited ? v : c).push(it);
     return { candidates: c, visited: v };
   }, [items]);
+
+  // Visited names in visit order — used on the share badge.
+  const visitedNames = useMemo(
+    () =>
+      visited
+        .slice()
+        .sort((a, b) => a.updatedAt - b.updatedAt)
+        .map((it) => it.title),
+    [visited],
+  );
 
   if (!collection) {
     return (
@@ -59,6 +74,23 @@ export default function CollectionDetailScreen() {
   const done = visited.length;
   const ratio = total > 0 ? done / total : 0;
   const complete = total > 0 && done === total;
+
+  const onShare = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      // Let the off-screen card finish laying out before capturing.
+      await new Promise((r) => setTimeout(r, 60));
+      const uri = await captureRef(shareRef, { format: 'png', quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '制覇バッジを共有' });
+      }
+    } catch {
+      Alert.alert('共有できませんでした', 'もう一度お試しください。');
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const confirmDeleteCollection = () => {
     Alert.alert('コレクションを削除', `「${collection.name}」を削除しますか？`, [
@@ -93,9 +125,16 @@ export default function CollectionDetailScreen() {
         options={{
           title: collection.name,
           headerRight: () => (
-            <Pressable onPress={confirmDeleteCollection} hitSlop={10}>
-              <Ionicons name="trash-outline" size={22} color={colors.brand} />
-            </Pressable>
+            <View style={styles.headerActions}>
+              {done > 0 && (
+                <Pressable onPress={onShare} hitSlop={10} disabled={sharing}>
+                  <Ionicons name="share-outline" size={22} color={colors.brand} />
+                </Pressable>
+              )}
+              <Pressable onPress={confirmDeleteCollection} hitSlop={10}>
+                <Ionicons name="trash-outline" size={22} color={colors.brand} />
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -116,6 +155,26 @@ export default function CollectionDetailScreen() {
           <View style={styles.barWrap}>
             <ProgressBar value={ratio} color={collection.color} height={10} />
           </View>
+
+          {done > 0 && (
+            <Pressable
+              onPress={onShare}
+              disabled={sharing}
+              style={({ pressed }) => [
+                styles.shareBtn,
+                { borderColor: collection.color },
+                pressed && styles.pressed,
+              ]}>
+              <Ionicons
+                name="share-social-outline"
+                size={17}
+                color={collection.color}
+              />
+              <Text style={[styles.shareText, { color: collection.color }]}>
+                {complete ? '制覇バッジをシェア' : '記録をシェア'}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Actions */}
@@ -223,6 +282,11 @@ export default function CollectionDetailScreen() {
         addedMemoIds={new Set(items.map((i) => i.memoId).filter(Boolean) as string[])}
         onPick={(memo) => addMemoAsItem(collection.id, memo)}
       />
+
+      {/* Off-screen card captured for sharing (never visible to the user). */}
+      <View style={styles.offscreen} pointerEvents="none">
+        <ShareCard ref={shareRef} collection={collection} done={done} total={total} visitedNames={visitedNames} />
+      </View>
     </View>
   );
 }
@@ -353,6 +417,23 @@ const styles = StyleSheet.create({
   },
   chipDisabled: { opacity: 0.6 },
   chipText: { fontSize: 12, fontWeight: '700', color: colors.ink },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 18,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1.5,
+  },
+  shareText: { fontSize: 14, fontWeight: '800' },
+  offscreen: {
+    position: 'absolute',
+    left: -10000,
+    top: 0,
+  },
   sectionHeader: {
     fontSize: 13,
     fontWeight: '800',

@@ -9,7 +9,7 @@ import * as SQLite from 'expo-sqlite';
  */
 
 const DB_NAME = 'pinote.db';
-const LATEST_VERSION = 3;
+const LATEST_VERSION = 4;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -73,6 +73,14 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_items_collection ON collection_items (collection_id, sort_order);
     `);
     version = 3;
+  }
+
+  if (version < 4) {
+    // Free-form tags (e.g. #絶景 #穴場), stored as a JSON string array.
+    await db.execAsync(`
+      ALTER TABLE memos ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';
+    `);
+    version = 4;
   }
 
   if (version !== LATEST_VERSION) version = LATEST_VERSION;

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  ScrollView,
   SectionList,
   StyleSheet,
   Text,
@@ -13,11 +14,12 @@ import {
 
 import { CollectionRow } from '@/components/pinote/collection-row';
 import { MemoRow } from '@/components/pinote/memo-row';
+import { CATEGORIES } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCurrentLocation } from '@/location/use-current-location';
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
-import type { Memo } from '@/types/memo';
+import type { CategoryId, Memo } from '@/types/memo';
 import { formatDistance, haversine } from '@/utils/distance';
 
 type Tab = 'memo' | 'collection' | 'timeline';
@@ -44,12 +46,31 @@ export default function LibraryScreen() {
 
   const [tab, setTab] = useState<Tab>('memo');
   const [query, setQuery] = useState('');
+  const [catFilter, setCatFilter] = useState<CategoryId | null>(null);
+  const [topRated, setTopRated] = useState(false);
+  const [revisitOnly, setRevisitOnly] = useState(false);
+
+  const activeFilters = (catFilter ? 1 : 0) + (topRated ? 1 : 0) + (revisitOnly ? 1 : 0);
 
   const memoResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = q
-      ? memos.filter((m) => m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q))
-      : memos;
+    const needle = q.replace(/^#+/, '');
+    const list = memos.filter((m) => {
+      if (
+        q &&
+        !(
+          m.title.toLowerCase().includes(q) ||
+          m.body.toLowerCase().includes(q) ||
+          m.tags.some((t) => t.toLowerCase().includes(needle))
+        )
+      ) {
+        return false;
+      }
+      if (catFilter && m.category !== catFilter) return false;
+      if (topRated && m.rating < 4) return false;
+      if (revisitOnly && !m.wantRevisit) return false;
+      return true;
+    });
     if (coords) {
       return [...list].sort(
         (a, b) =>
@@ -58,7 +79,7 @@ export default function LibraryScreen() {
       );
     }
     return list;
-  }, [memos, query, coords]);
+  }, [memos, query, coords, catFilter, topRated, revisitOnly]);
 
   // Timeline: memos grouped into date sections, newest first.
   const sections = useMemo(() => {
@@ -110,14 +131,57 @@ export default function LibraryScreen() {
               returnKeyType="search"
             />
           </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.filterRow}>
+            <FilterChip
+              icon="star"
+              label="★4以上"
+              active={topRated}
+              onPress={() => setTopRated((v) => !v)}
+            />
+            <FilterChip
+              icon="repeat"
+              label="また行きたい"
+              active={revisitOnly}
+              onPress={() => setRevisitOnly((v) => !v)}
+            />
+            <View style={styles.filterDivider} />
+            {CATEGORIES.map((c) => (
+              <FilterChip
+                key={c.id}
+                icon={c.icon}
+                label={c.label}
+                tint={c.tint}
+                active={catFilter === c.id}
+                onPress={() => setCatFilter((prev) => (prev === c.id ? null : c.id))}
+              />
+            ))}
+          </ScrollView>
+
           <FlatList
             data={memoResults}
             keyExtractor={(m) => m.id}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             contentContainerStyle={memoResults.length === 0 ? styles.emptyWrap : undefined}
+            ListHeaderComponent={
+              <Text style={styles.countLabel}>
+                {memoResults.length}件{activeFilters > 0 ? '（絞り込み中）' : ''}
+              </Text>
+            }
             ListEmptyComponent={
-              <Empty icon="document-text-outline" text={query ? '一致するメモがありません' : 'メモがまだありません'} />
+              <Empty
+                icon="document-text-outline"
+                text={
+                  query || activeFilters > 0
+                    ? '条件に一致するメモがありません'
+                    : 'メモがまだありません'
+                }
+              />
             }
             renderItem={({ item }) => (
               <MemoRow memo={item} distance={distanceLabel(item)} onPress={() => openMemo(item.id)} />
@@ -170,6 +234,30 @@ export default function LibraryScreen() {
         />
       )}
     </View>
+  );
+}
+
+function FilterChip({
+  icon,
+  label,
+  active,
+  onPress,
+  tint,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  tint?: string;
+}) {
+  const color = tint ?? colors.brand;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.filterChip, active && { backgroundColor: color, borderColor: color }]}>
+      <Ionicons name={icon} size={13} color={active ? colors.onAccent : color} />
+      <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -244,6 +332,45 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: colors.ink,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  filterDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 4,
+    backgroundColor: colors.hairline,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: colors.hairline,
+    backgroundColor: colors.surface,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  filterChipTextActive: {
+    color: colors.onAccent,
+  },
+  countLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.subInk,
+    paddingHorizontal: 16,
+    paddingBottom: 6,
   },
   createBtn: {
     flexDirection: 'row',

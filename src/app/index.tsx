@@ -179,6 +179,18 @@ export default function HomeScreen() {
     [collectionItems],
   );
 
+  // Trip route: connect the visited places in the order they were visited so the
+  // collection reads like a travel log line on the map.
+  const collectionRoute = useMemo(
+    () =>
+      collectionItems
+        .filter((it) => it.visited)
+        .slice()
+        .sort((a, b) => a.updatedAt - b.updatedAt)
+        .map((it) => ({ latitude: it.lat, longitude: it.lng })),
+    [collectionItems],
+  );
+
   const markers = activeCollection ? collectionMarkers : memoLayer.markers;
   const clusters = activeCollection ? [] : memoLayer.clusters;
   // Apple POIs are a discovery aid in 見る mode only. In 残す mode they flood the
@@ -301,6 +313,8 @@ export default function HomeScreen() {
         ref={mapRef}
         markers={markers}
         clusters={clusters}
+        route={activeCollection ? collectionRoute : undefined}
+        routeColor={activeCollection?.color}
         poiCategories={poiCategories}
         initialCamera={
           hasFocus

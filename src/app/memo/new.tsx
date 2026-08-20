@@ -21,6 +21,7 @@ import { PhotoField } from '@/components/pinote/photo-field';
 import { PinoteMap } from '@/components/pinote/pinote-map';
 import { RatingStars } from '@/components/pinote/rating-input';
 import { RevisitToggle } from '@/components/pinote/revisit-toggle';
+import { TagInput } from '@/components/pinote/tag-input';
 import { DEFAULT_CATEGORY, getCategory } from '@/constants/categories';
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
@@ -50,6 +51,7 @@ export default function NewMemoScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [wantRevisit, setWantRevisit] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   // The location is chosen on the map before opening this screen; here it is fixed
@@ -71,6 +73,7 @@ export default function NewMemoScreen() {
         lng: pin.longitude,
         rating,
         wantRevisit,
+        tags,
         photoUri,
       });
       // Coming from a collection candidate → mark it 制覇 and link the memo.
@@ -174,6 +177,9 @@ export default function NewMemoScreen() {
 
         <Text style={styles.label}>カテゴリ</Text>
         <CategoryPicker value={category} onChange={setCategory} />
+
+        <Text style={styles.label}>タグ</Text>
+        <TagInput value={tags} onChange={setTags} />
 
         <Text style={styles.label}>写真</Text>
         <PhotoField uri={photoUri} onChange={setPhotoUri} />

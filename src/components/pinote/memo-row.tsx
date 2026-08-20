@@ -53,6 +53,11 @@ export function MemoRow({ memo, distance, onPress, onLongPress }: Props) {
             </View>
           )}
         </View>
+        {memo.tags.length > 0 && (
+          <Text style={styles.tags} numberOfLines={1}>
+            {memo.tags.map((t) => `#${t}`).join(' ')}
+          </Text>
+        )}
       </View>
 
       <Ionicons name="chevron-forward" size={18} color={colors.faint} />
@@ -117,5 +122,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#B45309',
     fontWeight: '600',
+  },
+  tags: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.brand,
   },
 });

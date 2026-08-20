@@ -23,6 +23,7 @@ import { PhotoField } from '@/components/pinote/photo-field';
 import { PinoteMap } from '@/components/pinote/pinote-map';
 import { RatingStars } from '@/components/pinote/rating-input';
 import { RevisitToggle } from '@/components/pinote/revisit-toggle';
+import { TagInput } from '@/components/pinote/tag-input';
 import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCollectionStore } from '@/store/useCollectionStore';
@@ -57,6 +58,7 @@ export default function MemoDetailScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(memo?.photoUri ?? null);
   const [rating, setRating] = useState(memo?.rating ?? 0);
   const [wantRevisit, setWantRevisit] = useState(memo?.wantRevisit ?? false);
+  const [tags, setTags] = useState<string[]>(memo?.tags ?? []);
   const [lat, setLat] = useState(memo?.lat ?? 0);
   const [lng, setLng] = useState(memo?.lng ?? 0);
   const [saving, setSaving] = useState(false);
@@ -81,6 +83,7 @@ export default function MemoDetailScreen() {
     setPhotoUri(memo.photoUri);
     setRating(memo.rating);
     setWantRevisit(memo.wantRevisit);
+    setTags(memo.tags);
     setLat(memo.lat);
     setLng(memo.lng);
     setEditing(true);
@@ -90,7 +93,7 @@ export default function MemoDetailScreen() {
     if (title.trim().length === 0) return;
     setSaving(true);
     try {
-      await update(memo.id, { title, body, category, photoUri, rating, wantRevisit, lat, lng });
+      await update(memo.id, { title, body, category, photoUri, rating, wantRevisit, tags, lat, lng });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -175,6 +178,9 @@ export default function MemoDetailScreen() {
             <Text style={styles.label}>カテゴリ</Text>
             <CategoryPicker value={category} onChange={setCategory} />
 
+            <Text style={styles.label}>タグ</Text>
+            <TagInput value={tags} onChange={setTags} />
+
             <Text style={styles.label}>写真</Text>
             <PhotoField uri={photoUri} onChange={setPhotoUri} />
 
@@ -221,6 +227,16 @@ export default function MemoDetailScreen() {
               </View>
             )}
             {memo.body.length > 0 && <Text style={styles.body}>{memo.body}</Text>}
+
+            {memo.tags.length > 0 && (
+              <View style={styles.tagRow}>
+                {memo.tags.map((t) => (
+                  <View key={t} style={styles.tagChip}>
+                    <Text style={styles.tagChipText}>#{t}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
             <Text style={styles.meta}>作成: {formatDate(memo.createdAt)}</Text>
             {memo.updatedAt !== memo.createdAt && (
@@ -406,6 +422,23 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: colors.ink,
     marginTop: 8,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.brandSoft,
+  },
+  tagChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brand,
   },
   meta: {
     fontSize: 13,
