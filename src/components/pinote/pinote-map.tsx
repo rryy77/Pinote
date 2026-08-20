@@ -1,6 +1,7 @@
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants/colors';
 
 /**
  * A thin cross-platform wrapper around `expo-maps`: Apple Maps on iOS (no API
@@ -52,7 +53,7 @@ type Props = {
 };
 
 const DEFAULT_ZOOM = 15;
-const CLUSTER_COLOR = '#FF5B4A';
+const CLUSTER_COLOR = colors.brand;
 
 export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
   {
@@ -139,7 +140,7 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
           coordinates: { latitude: c.latitude, longitude: c.longitude },
           text: String(c.count),
           backgroundColor: CLUSTER_COLOR,
-          textColor: '#FFFFFF',
+          textColor: colors.onAccent,
           title: `${c.count}件のメモ`,
         }))}
         onMarkerClick={(marker) => {
@@ -212,11 +213,11 @@ const styles = StyleSheet.create({
   fallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
     padding: 24,
   },
   fallbackText: {
-    color: '#60646C',
+    color: colors.subInk,
     textAlign: 'center',
   },
 });

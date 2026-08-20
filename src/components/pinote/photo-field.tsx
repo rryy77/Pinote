@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants/colors';
 
 type Props = {
   /** Current photo uri (stored or freshly picked), or null. */
@@ -33,10 +34,10 @@ export function PhotoField({ uri, onChange }: Props) {
       <View style={styles.wrap}>
         <Image source={{ uri }} style={styles.image} contentFit="cover" />
         <Pressable style={styles.remove} onPress={() => onChange(null)} hitSlop={8}>
-          <Ionicons name="close" size={18} color="#FFFFFF" />
+          <Ionicons name="close" size={18} color={colors.onAccent} />
         </Pressable>
         <Pressable style={styles.change} onPress={pick}>
-          <Ionicons name="camera" size={15} color="#FFFFFF" />
+          <Ionicons name="camera" size={15} color={colors.onAccent} />
           <Text style={styles.changeText}>変更</Text>
         </Pressable>
       </View>
@@ -45,7 +46,7 @@ export function PhotoField({ uri, onChange }: Props) {
 
   return (
     <Pressable style={styles.add} onPress={pick}>
-      <Ionicons name="camera-outline" size={22} color="#FF5B4A" />
+      <Ionicons name="camera-outline" size={22} color={colors.brand} />
       <Text style={styles.addText}>写真を追加</Text>
     </Pressable>
   );
@@ -56,7 +57,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   image: {
     width: '100%',
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   changeText: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -95,15 +96,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#B9C0C8',
+    borderColor: colors.faint,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: '#F7F8FA',
+    backgroundColor: colors.surfaceMuted,
   },
   addText: {
-    color: '#FF5B4A',
+    color: colors.brand,
     fontSize: 15,
     fontWeight: '700',
   },

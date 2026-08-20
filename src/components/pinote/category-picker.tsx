@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants/colors';
 
 import { CATEGORIES } from '@/constants/categories';
 import type { CategoryId } from '@/types/memo';
@@ -24,7 +25,7 @@ export function CategoryPicker({ value, onChange }: Props) {
               { borderColor: c.tint },
               selected && { backgroundColor: c.tint },
             ]}>
-            <Ionicons name={c.icon} size={15} color={selected ? '#FFFFFF' : c.tint} />
+            <Ionicons name={c.icon} size={15} color={selected ? colors.onAccent : c.tint} />
             <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{c.label}</Text>
           </Pressable>
         );
@@ -51,9 +52,9 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3C4149',
+    color: colors.ink,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
 });

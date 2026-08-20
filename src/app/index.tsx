@@ -2,13 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryFilter, type CategoryFilterValue } from '@/components/pinote/category-filter';
 import { CenterPin } from '@/components/pinote/center-pin';
 import { MemoCard } from '@/components/pinote/memo-card';
+import { ModeSwitch } from '@/components/pinote/mode-switch';
 import { Onboarding } from '@/components/pinote/onboarding';
+import { ThemeChoice } from '@/components/pinote/theme-choice';
+import { ToolsMenu } from '@/components/pinote/tools-menu';
 import {
   PinoteMap,
   type ClusterMarker,
@@ -20,12 +29,17 @@ import { colors } from '@/constants/colors';
 import { useCurrentLocation } from '@/location/use-current-location';
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { clusterMemos } from '@/utils/cluster';
 import { formatDistance, haversine } from '@/utils/distance';
 import { hasOnboarded, setOnboarded } from '@/utils/onboarding';
 
 /** Fallback camera (Tokyo Station) until the user's location resolves. */
 const DEFAULT_CAMERA = { latitude: 35.681236, longitude: 139.767125, zoom: 13 };
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+/** Radius large enough for the theme-reveal circle to cover the whole screen. */
+const REVEAL_MAX_R = Math.hypot(SCREEN_W, SCREEN_H);
 
 /** The two ways to use the map: browse saved memos, or drop a new one. */
 type Mode = 'view' | 'create';
@@ -56,7 +70,34 @@ export default function HomeScreen() {
   const [centerAddress, setCenterAddress] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collectionId, setCollectionId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [showThemePick, setShowThemePick] = useState(false);
+
+  const themeMode = useThemeStore((s) => s.mode);
+  const setThemeMode = useThemeStore((s) => s.setMode);
+
+  // Theme switch "circular reveal": the new background spreads from the button.
+  const [reveal, setReveal] = useState<{ x: number; y: number; color: string } | null>(null);
+  const revealP = useSharedValue(0);
+  const revealStyle = useAnimatedStyle(() => ({ transform: [{ scale: revealP.value }] }));
+
+  const finishThemeToggle = (target: 'light' | 'dark') => {
+    setThemeMode(target);
+    setReveal(null);
+  };
+  const runThemeToggle = () => {
+    const target = themeMode === 'dark' ? 'light' : 'dark';
+    setReveal({
+      x: SCREEN_W - 16 - 22,
+      y: insets.top + 116 + 3 * 52 + 22,
+      color: target === 'dark' ? '#000000' : '#F4F5F7',
+    });
+    revealP.value = 0;
+    revealP.value = withTiming(1, { duration: 460 }, (finished) => {
+      if (finished) runOnJS(finishThemeToggle)(target);
+    });
+  };
 
   useEffect(() => {
     if (!hasOnboarded()) setShowIntro(true);
@@ -131,7 +172,7 @@ export default function HomeScreen() {
           latitude: it.lat,
           longitude: it.lng,
           title: it.title,
-          tint: it.visited ? c.tint : '#B4B8BE',
+          tint: it.visited ? c.tint : '#9AA0A6',
           symbol: it.visited ? c.symbol : 'mappin',
         };
       }),
@@ -140,7 +181,10 @@ export default function HomeScreen() {
 
   const markers = activeCollection ? collectionMarkers : memoLayer.markers;
   const clusters = activeCollection ? [] : memoLayer.clusters;
-  const poiCategories = activeCollection || filter === 'all' ? [] : getCategory(filter).poi;
+  // Apple POIs are a discovery aid in 見る mode only. In 残す mode they flood the
+  // map and hide the user's own memos, so we suppress them there.
+  const poiCategories =
+    activeCollection || filter === 'all' || mode === 'create' ? [] : getCategory(filter).poi;
 
   const selectedMemo = useMemo(
     () => (selectedId ? memos.find((m) => m.id === selectedId) ?? null : null),
@@ -226,12 +270,14 @@ export default function HomeScreen() {
 
   const enterCreate = () => {
     setSelectedId(null);
+    setMenuOpen(false);
     setMode('create');
     // Prime the footer address for the current center.
     onCameraMove({ ...centerRef.current, zoom });
   };
 
   const enterView = () => {
+    setMenuOpen(false);
     setMode('view');
   };
 
@@ -265,7 +311,10 @@ export default function HomeScreen() {
         }
         onMarkerPress={onMarkerPress}
         onClusterPress={expandCluster}
-        onMapPress={() => setSelectedId(null)}
+        onMapPress={() => {
+          setSelectedId(null);
+          setMenuOpen(false);
+        }}
         onCameraMove={onCameraMove}
       />
 
@@ -293,37 +342,58 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Right-hand control column: find a place, browse memos, recenter.
-          Apple's built-in controls are hidden, so nothing overlaps. */}
-      <Pressable
-        onPress={() => router.push('/search')}
-        style={({ pressed }) => [
-          styles.mapButton,
-          { right: 16, top: insets.top + 64 },
-          pressed && styles.pressed,
-        ]}>
-        <Ionicons name="search" size={20} color={colors.ink} />
-      </Pressable>
-
-      <Pressable
-        onPress={() => router.push('/list')}
-        style={({ pressed }) => [
-          styles.mapButton,
-          { right: 16, top: insets.top + 116 },
-          pressed && styles.pressed,
-        ]}>
-        <Ionicons name="list" size={22} color={colors.ink} />
-      </Pressable>
-
-      <Pressable
-        onPress={recenter}
-        style={({ pressed }) => [
-          styles.mapButton,
-          { right: 16, top: insets.top + 168 },
-          pressed && styles.pressed,
-        ]}>
-        <Ionicons name="locate" size={20} color={colors.brand} />
-      </Pressable>
+      {/* One consolidated "tools" button (top-right) that pops open its actions,
+          iOS-folder style. */}
+      <ToolsMenu
+        open={menuOpen}
+        onToggle={() => setMenuOpen((v) => !v)}
+        insetTop={insets.top}
+        actions={[
+          {
+            key: 'search',
+            icon: 'search',
+            color: colors.ink,
+            onPress: () => {
+              setMenuOpen(false);
+              router.push('/search');
+            },
+          },
+          {
+            key: 'list',
+            icon: 'list',
+            size: 22,
+            color: colors.ink,
+            onPress: () => {
+              setMenuOpen(false);
+              router.push('/list');
+            },
+          },
+          {
+            key: 'recenter',
+            icon: 'locate',
+            color: colors.brand,
+            onPress: () => {
+              setMenuOpen(false);
+              recenter();
+            },
+          },
+          {
+            key: 'theme',
+            icon: themeMode === 'dark' ? 'sunny' : 'moon',
+            color: colors.ink,
+            onPress: runThemeToggle,
+          },
+          {
+            key: 'appearance',
+            icon: 'color-palette-outline',
+            color: colors.ink,
+            onPress: () => {
+              setMenuOpen(false);
+              router.push('/appearance');
+            },
+          },
+        ]}
+      />
 
       {/* Info card (view mode) sits just above the mode switch. */}
       {mode === 'view' && !activeCollection && selectedMemo && (
@@ -354,32 +424,41 @@ export default function HomeScreen() {
           <Pressable
             onPress={addHere}
             style={({ pressed }) => [styles.heroCta, pressed && styles.heroCtaPressed]}>
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+            <Ionicons name="add-circle" size={24} color={colors.onAccent} />
             <Text style={styles.heroCtaText}>ここにメモを残す</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/search')}
+            style={({ pressed }) => [styles.footerSearch, pressed && styles.pressed]}>
+            <Ionicons name="search" size={15} color={colors.subInk} />
+            <Text style={styles.footerSearchText}>お店の名前で探して残す</Text>
           </Pressable>
         </View>
       )}
 
       {/* Mode switch at the very bottom (hidden while viewing a collection). */}
       {!activeCollection && (
-        <View style={[styles.modeSwitch, { bottom: bottomBase }]}>
-          <Pressable
-            onPress={enterView}
-            style={[styles.modeBtn, mode === 'view' && styles.modeBtnActive]}>
-            <Ionicons name="map" size={16} color={mode === 'view' ? '#FFFFFF' : colors.subInk} />
-            <Text style={[styles.modeText, mode === 'view' && styles.modeTextActive]}>見る</Text>
-          </Pressable>
-          <Pressable
-            onPress={enterCreate}
-            style={[styles.modeBtn, mode === 'create' && styles.modeBtnActive]}>
-            <Ionicons
-              name="add-circle"
-              size={16}
-              color={mode === 'create' ? '#FFFFFF' : colors.subInk}
-            />
-            <Text style={[styles.modeText, mode === 'create' && styles.modeTextActive]}>残す</Text>
-          </Pressable>
+        <View style={[styles.modeSwitchWrap, { bottom: bottomBase }]}>
+          <ModeSwitch mode={mode} onChange={(m) => (m === 'create' ? enterCreate() : enterView())} />
         </View>
+      )}
+
+      {reveal && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.reveal,
+            {
+              left: reveal.x - REVEAL_MAX_R,
+              top: reveal.y - REVEAL_MAX_R,
+              width: REVEAL_MAX_R * 2,
+              height: REVEAL_MAX_R * 2,
+              borderRadius: REVEAL_MAX_R,
+              backgroundColor: reveal.color,
+            },
+            revealStyle,
+          ]}
+        />
       )}
 
       {showIntro && (
@@ -387,6 +466,16 @@ export default function HomeScreen() {
           onDone={() => {
             setOnboarded();
             setShowIntro(false);
+            setShowThemePick(true);
+          }}
+        />
+      )}
+
+      {showThemePick && (
+        <ThemeChoice
+          onPick={(m) => {
+            setThemeMode(m);
+            setShowThemePick(false);
           }}
         />
       )}
@@ -444,20 +533,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  mapButton: {
-    position: 'absolute',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
   },
   cardWrap: {
     position: 'absolute',
@@ -519,42 +594,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandDark,
   },
   heroCtaText: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  modeSwitch: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 10,
-  },
-  modeBtn: {
+  footerSearch: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 20,
-    height: 40,
-    borderRadius: 999,
+    marginTop: 10,
+    paddingVertical: 4,
   },
-  modeBtnActive: {
-    backgroundColor: colors.brand,
-  },
-  modeText: {
-    fontSize: 15,
-    fontWeight: '800',
+  footerSearchText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.subInk,
   },
-  modeTextActive: {
-    color: '#FFFFFF',
+  modeSwitchWrap: {
+    position: 'absolute',
+    alignSelf: 'center',
+  },
+  reveal: {
+    position: 'absolute',
+    zIndex: 50,
   },
   pressed: {
     opacity: 0.85,

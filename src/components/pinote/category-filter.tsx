@@ -24,7 +24,7 @@ export function CategoryFilter({ value, onChange }: Props) {
       <Chip
         label="すべて"
         icon="apps"
-        tint={colors.ink}
+        tint={colors.brand}
         selected={value === 'all'}
         onPress={() => onChange('all')}
       />
@@ -59,7 +59,7 @@ function Chip({
     <Pressable
       onPress={onPress}
       style={[styles.chip, { borderColor: tint }, selected && { backgroundColor: tint }]}>
-      <Ionicons name={icon} size={14} color={selected ? '#FFFFFF' : tint} />
+      <Ionicons name={icon} size={14} color={selected ? colors.onAccent : tint} />
       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
     </Pressable>
   );
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 3,
@@ -89,9 +89,9 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3C4149',
+    color: colors.ink,
   },
   chipTextSelected: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
   },
 });

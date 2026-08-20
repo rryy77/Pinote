@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
+import { useThemeStore } from '@/store/useThemeStore';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -14,6 +15,12 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const load = useMemoStore((s) => s.load);
   const loadCollections = useCollectionStore((s) => s.load);
+  const hydrateTheme = useThemeStore((s) => s.hydrate);
+
+  // Apply the saved appearance before first paint so there's no light flash.
+  useEffect(() => {
+    hydrateTheme();
+  }, [hydrateTheme]);
 
   useEffect(() => {
     Promise.all([load(), loadCollections()]).finally(() => SplashScreen.hideAsync());
@@ -37,6 +44,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="collections/[id]" options={{ title: 'コレクション' }} />
           <Stack.Screen name="backup" options={{ presentation: 'modal', title: 'バックアップ' }} />
+          <Stack.Screen name="appearance" options={{ presentation: 'modal', title: '見た目' }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

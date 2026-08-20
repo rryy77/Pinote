@@ -37,7 +37,7 @@ export function CollectionRow({ collection, onPress }: Props) {
         <ProgressBar value={ratio} color={collection.color} />
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color="#C4C7CC" />
+      <Ionicons name="chevron-forward" size={18} color={colors.faint} />
     </Pressable>
   );
 }

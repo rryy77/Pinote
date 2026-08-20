@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 21,
-    color: '#3C4149',
+    color: colors.ink,
   },
   count: {
     marginTop: 20,

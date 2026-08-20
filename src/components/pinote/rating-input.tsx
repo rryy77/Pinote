@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { colors } from '@/constants/colors';
 
 type Props = {
   value: number;
@@ -9,7 +10,7 @@ type Props = {
 };
 
 const FILLED = '#F5A623';
-const EMPTY = '#CBD0D6';
+const EMPTY = colors.faint;
 
 /** A 0–5 star rating, read-only by default or editable when `onChange` is set. */
 export function RatingStars({ value, onChange, size = 20 }: Props) {

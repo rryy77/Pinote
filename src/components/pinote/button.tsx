@@ -42,7 +42,7 @@ export function Button({
         style,
       ]}>
       {loading ? (
-        <ActivityIndicator color={isGhost ? colors.brand : '#FFFFFF'} />
+        <ActivityIndicator color={isGhost ? colors.brand : colors.onAccent} />
       ) : (
         <Text style={[styles.label, isGhost && styles.ghostLabel]}>{label}</Text>
       )}
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   label: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 16,
     fontWeight: '700',
   },

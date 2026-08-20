@@ -99,12 +99,12 @@ export default function SearchScreen() {
       />
 
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color="#8A8F98" />
+        <Ionicons name="search" size={18} color={colors.subInk} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="お店・住所・場所の名前"
-          placeholderTextColor="#9AA0A6"
+          placeholderTextColor={colors.subInk}
           style={styles.input}
           autoFocus
           clearButtonMode="while-editing"
@@ -121,7 +121,7 @@ export default function SearchScreen() {
         contentContainerStyle={places.length === 0 ? styles.emptyWrap : undefined}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="location-outline" size={40} color="#C4C7CC" />
+            <Ionicons name="location-outline" size={40} color={colors.faint} />
             <Text style={styles.emptyText}>
               {searching
                 ? '検索中…'
@@ -144,7 +144,7 @@ export default function SearchScreen() {
               </Text>
               <Text style={styles.placeAction}>{addTo ? '候補に追加' : 'ここにメモを残す'}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#C4C7CC" />
+            <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
         )}
       />
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#60646C',
+    color: colors.subInk,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.hairline,
   },
   placePressed: {
     opacity: 0.6,

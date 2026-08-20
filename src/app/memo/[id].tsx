@@ -121,7 +121,7 @@ export default function MemoDetailScreen() {
           headerRight: () =>
             editing ? null : (
               <Pressable onPress={startEdit} hitSlop={10}>
-                <Ionicons name="create-outline" size={24} color="#FF5B4A" />
+                <Ionicons name="create-outline" size={24} color={colors.brand} />
               </Pressable>
             ),
         }}
@@ -153,7 +153,7 @@ export default function MemoDetailScreen() {
           />
           {editing && (
             <View style={styles.mapHintBadge} pointerEvents="none">
-              <Ionicons name="hand-left-outline" size={14} color="#FFFFFF" />
+              <Ionicons name="hand-left-outline" size={14} color={colors.onAccent} />
               <Text style={styles.mapHintText}>タップで場所を変更</Text>
             </View>
           )}
@@ -227,7 +227,7 @@ export default function MemoDetailScreen() {
               <Text style={styles.meta}>更新: {formatDate(memo.updatedAt)}</Text>
             )}
             <View style={styles.metaRow}>
-              <Ionicons name="location-outline" size={13} color="#8A8F98" />
+              <Ionicons name="location-outline" size={13} color={colors.subInk} />
               <Text style={[styles.meta, styles.metaInline]}>
                 {memo.lat.toFixed(5)}, {memo.lng.toFixed(5)}
               </Text>
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 12,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   mapHintBadge: {
     position: 'absolute',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   mapHintText: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 16,
     marginBottom: 12,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -398,18 +398,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#111',
+    color: colors.ink,
     marginTop: 8,
   },
   body: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#3C4149',
+    color: colors.ink,
     marginTop: 8,
   },
   meta: {
     fontSize: 13,
-    color: '#8A8F98',
+    color: colors.subInk,
     marginTop: 6,
   },
   metaRow: {
@@ -424,18 +424,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#60646C',
+    color: colors.subInk,
     marginTop: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D8DBDF',
+    borderColor: colors.hairline,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
-    backgroundColor: '#FFF',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   multiline: {
     minHeight: 110,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   pickTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.ink },
   pickCount: { fontSize: 13, fontWeight: '700', color: colors.subInk },
-  pickEmpty: { padding: 24, textAlign: 'center', color: '#60646C' },
+  pickEmpty: { padding: 24, textAlign: 'center', color: colors.subInk },
   missing: {
     flex: 1,
     alignItems: 'center',
@@ -500,6 +500,6 @@ const styles = StyleSheet.create({
   },
   missingText: {
     fontSize: 16,
-    color: '#60646C',
+    color: colors.subInk,
   },
 });

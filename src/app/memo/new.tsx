@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { colors } from '@/constants/colors';
 
 import { Button } from '@/components/pinote/button';
 import { CategoryPicker } from '@/components/pinote/category-picker';
@@ -33,6 +34,7 @@ export default function NewMemoScreen() {
   }>();
   const add = useMemoStore((s) => s.add);
   const markVisited = useCollectionStore((s) => s.markVisited);
+  const bodyRef = useRef<TextInput>(null);
 
   const initialLat = Number(lat);
   const initialLng = Number(lng);
@@ -83,7 +85,7 @@ export default function NewMemoScreen() {
         options={{
           headerLeft: () => (
             <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="close" size={26} color="#FF5B4A" />
+              <Ionicons name="close" size={26} color={colors.brand} />
             </Pressable>
           ),
           headerRight: () =>
@@ -98,7 +100,9 @@ export default function NewMemoScreen() {
         <Text style={styles.label}>場所</Text>
         {pin ? (
           <>
-            <View style={styles.mapPreview}>
+            {/* Fixed preview only — the spot is already chosen, so the map is
+                non-interactive (no pan/zoom). */}
+            <View style={styles.mapPreview} pointerEvents="none">
               <PinoteMap
                 markers={[
                   {
@@ -115,7 +119,7 @@ export default function NewMemoScreen() {
               />
             </View>
             <View style={styles.hintRow}>
-              <Ionicons name="location-outline" size={13} color="#8A8F98" />
+              <Ionicons name="location-outline" size={13} color={colors.subInk} />
               <Text style={styles.mapHint}>
                 {pin.latitude.toFixed(5)}, {pin.longitude.toFixed(5)} に保存します
               </Text>
@@ -133,18 +137,21 @@ export default function NewMemoScreen() {
           value={title}
           onChangeText={setTitle}
           placeholder="例: 味噌ラーメンが最高だった店"
-          placeholderTextColor="#9AA0A6"
+          placeholderTextColor={colors.subInk}
           style={styles.input}
           autoFocus
-          returnKeyType="done"
+          returnKeyType="next"
+          blurOnSubmit={false}
+          onSubmitEditing={() => bodyRef.current?.focus()}
         />
 
         <Text style={styles.label}>メモ</Text>
         <TextInput
+          ref={bodyRef}
           value={body}
           onChangeText={setBody}
           placeholder="味・値段・行った日など、後で見返したいこと"
-          placeholderTextColor="#9AA0A6"
+          placeholderTextColor={colors.subInk}
           style={[styles.input, styles.multiline]}
           multiline
         />
@@ -174,7 +181,7 @@ export default function NewMemoScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   headerSave: {
-    color: '#FF5B4A',
+    color: colors.brand,
     fontSize: 17,
     fontWeight: '700',
   },
@@ -186,7 +193,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   hintRow: {
     flexDirection: 'row',
@@ -196,23 +203,23 @@ const styles = StyleSheet.create({
   },
   mapHint: {
     fontSize: 12,
-    color: '#8A8F98',
+    color: colors.subInk,
   },
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#60646C',
+    color: colors.subInk,
     marginTop: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D8DBDF',
+    borderColor: colors.hairline,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
-    backgroundColor: '#FFF',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   multiline: {
     minHeight: 110,

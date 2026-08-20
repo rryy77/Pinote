@@ -36,6 +36,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3C4149',
+    color: colors.ink,
   },
 });

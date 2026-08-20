@@ -34,7 +34,7 @@ export function Onboarding({ onDone }: Props) {
     <View style={[styles.overlay, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 20 }]}>
       <View style={styles.header}>
         <View style={styles.pinBadge}>
-          <Ionicons name="location" size={40} color="#FFFFFF" />
+          <Ionicons name="location" size={40} color={colors.onAccent} />
         </View>
         <Text style={styles.title}>Pinote</Text>
         <Text style={styles.tagline}>行った場所を、地図に残す。</Text>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandDark,
   },
   ctaText: {
-    color: '#FFFFFF',
+    color: colors.onAccent,
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.3,

@@ -63,7 +63,7 @@ export default function NewCollectionScreen() {
           value={name}
           onChangeText={setName}
           placeholder="例: 渋谷ラーメンめぐり"
-          placeholderTextColor="#9AA0A6"
+          placeholderTextColor={colors.subInk}
           style={styles.input}
           autoFocus
           returnKeyType="done"
@@ -85,7 +85,7 @@ export default function NewCollectionScreen() {
         <View style={styles.grid}>
           {COLORS.map((c) => (
             <Pressable key={c} onPress={() => setColor(c)} style={[styles.colorCell, { backgroundColor: c }]}>
-              {color === c && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
+              {color === c && <Ionicons name="checkmark" size={18} color={colors.onAccent} />}
             </Pressable>
           ))}
         </View>
@@ -114,18 +114,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#60646C',
+    color: colors.subInk,
     marginTop: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D8DBDF',
+    borderColor: colors.hairline,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111',
-    backgroundColor: '#FFF',
+    color: colors.ink,
+    backgroundColor: colors.surface,
   },
   grid: {
     flexDirection: 'row',

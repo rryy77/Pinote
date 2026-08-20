@@ -99,12 +99,12 @@ export default function LibraryScreen() {
       {tab === 'memo' && (
         <>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color="#8A8F98" />
+            <Ionicons name="search" size={18} color={colors.subInk} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="メモを検索（名前・本文）"
-              placeholderTextColor="#9AA0A6"
+              placeholderTextColor={colors.subInk}
               style={styles.input}
               clearButtonMode="while-editing"
               returnKeyType="search"
@@ -186,7 +186,7 @@ function SegBtn({ label, active, onPress }: { label: string; active: boolean; on
 function Empty({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   return (
     <View style={styles.empty}>
-      <Ionicons name={icon} size={40} color="#C4C7CC" />
+      <Ionicons name={icon} size={40} color={colors.faint} />
       <Text style={styles.emptyText}>{text}</Text>
     </View>
   );
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#60646C',
+    color: colors.subInk,
     textAlign: 'center',
     lineHeight: 22,
   },

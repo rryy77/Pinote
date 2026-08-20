@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/constants/colors';
 
 import { getCategory } from '@/constants/categories';
 import type { Memo } from '@/types/memo';
@@ -54,7 +55,7 @@ export function MemoRow({ memo, distance, onPress, onLongPress }: Props) {
         </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color="#C4C7CC" />
+      <Ionicons name="chevron-forward" size={18} color={colors.faint} />
     </Pressable>
   );
 }
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: colors.hairline,
   },
   pressed: {
     opacity: 0.6,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   iconWrap: {
     width: 52,
@@ -92,11 +93,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111',
+    color: colors.ink,
   },
   snippet: {
     fontSize: 14,
-    color: '#60646C',
+    color: colors.subInk,
   },
   metaRow: {
     flexDirection: 'row',
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 12,
-    color: '#8A8F98',
+    color: colors.subInk,
   },
   revisit: {
     flexDirection: 'row',

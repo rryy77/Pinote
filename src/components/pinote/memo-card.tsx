@@ -26,7 +26,7 @@ export function MemoCard({ memo, distance, onClose, onOpenDetail }: Props) {
   return (
     <Pressable onPress={onOpenDetail} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <Pressable onPress={onClose} hitSlop={12} style={styles.close}>
-        <Ionicons name="close" size={16} color="#8A8F98" />
+        <Ionicons name="close" size={16} color={colors.subInk} />
       </Pressable>
 
       <View style={styles.row}>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 14,
-    backgroundColor: '#E9EDF2',
+    backgroundColor: colors.surfaceMuted,
   },
   thumbIcon: {
     alignItems: 'center',

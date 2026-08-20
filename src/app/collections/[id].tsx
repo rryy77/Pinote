@@ -158,11 +158,11 @@ export default function CollectionDetailScreen() {
                       { backgroundColor: collection.color },
                       pressed && styles.pressed,
                     ]}>
-                    <Ionicons name="checkmark" size={15} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={15} color={colors.onAccent} />
                     <Text style={styles.goText}>行った</Text>
                   </Pressable>
                   <Pressable onPress={() => removeItem(item.id)} hitSlop={8} style={styles.remove}>
-                    <Ionicons name="close" size={18} color="#B4B8BE" />
+                    <Ionicons name="close" size={18} color={colors.faint} />
                   </Pressable>
                 </View>
               );
@@ -199,7 +199,7 @@ export default function CollectionDetailScreen() {
                     <Text style={[styles.candSub, { color: collection.color }]}>✓ 制覇</Text>
                   </View>
                   <Pressable onPress={() => removeItem(item.id)} hitSlop={8} style={styles.remove}>
-                    <Ionicons name="close" size={18} color="#B4B8BE" />
+                    <Ionicons name="close" size={18} color={colors.faint} />
                   </Pressable>
                 </View>
               );
@@ -209,7 +209,7 @@ export default function CollectionDetailScreen() {
 
         {total === 0 && (
           <View style={styles.empty}>
-            <Ionicons name="add-circle-outline" size={40} color="#C4C7CC" />
+            <Ionicons name="add-circle-outline" size={40} color={colors.faint} />
             <Text style={styles.emptyText}>
               「候補を追加」で行きたい場所を並べ、{'\n'}行ったら「行った」でチェックしましょう。
             </Text>
@@ -243,8 +243,8 @@ function ActionChip({
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [styles.chip, disabled && styles.chipDisabled, pressed && styles.pressed]}>
-      <Ionicons name={icon} size={18} color={disabled ? '#B4B8BE' : colors.ink} />
-      <Text style={[styles.chipText, disabled && { color: '#B4B8BE' }]}>{label}</Text>
+      <Ionicons name={icon} size={18} color={disabled ? colors.faint : colors.ink} />
+      <Text style={[styles.chipText, disabled && { color: colors.faint }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -295,7 +295,7 @@ function MemoPicker({
               <Ionicons
                 name={added ? 'checkmark-circle' : 'add-circle-outline'}
                 size={24}
-                color={added ? colors.brand : '#C4C7CC'}
+                color={added ? colors.brand : colors.faint}
               />
             </Pressable>
           );
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
   },
-  goText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  goText: { color: colors.onAccent, fontSize: 13, fontWeight: '800' },
   remove: { padding: 2 },
   pressed: { opacity: 0.6 },
   empty: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#60646C',
+    color: colors.subInk,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 24,
   },
-  missingText: { fontSize: 16, color: '#60646C' },
+  missingText: { fontSize: 16, color: colors.subInk },
   pickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
