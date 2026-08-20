@@ -1,18 +1,45 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { useCollectionStore } from '@/store/useCollectionStore';
+import { useMemoStore } from '@/store/useMemoStore';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const load = useMemoStore((s) => s.load);
+  const loadCollections = useCollectionStore((s) => s.load);
+
+  useEffect(() => {
+    Promise.all([load(), loadCollections()]).finally(() => SplashScreen.hideAsync());
+  }, [load, loadCollections]);
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="memo/new"
+            options={{ presentation: 'modal', title: 'メモを作成' }}
+          />
+          <Stack.Screen name="memo/[id]" options={{ title: 'メモ' }} />
+          <Stack.Screen name="search" options={{ presentation: 'modal', title: '場所を探す' }} />
+          <Stack.Screen name="list" options={{ presentation: 'modal', title: 'ライブラリ' }} />
+          <Stack.Screen
+            name="collections/new"
+            options={{ presentation: 'modal', title: 'コレクションを作成' }}
+          />
+          <Stack.Screen name="collections/[id]" options={{ title: 'コレクション' }} />
+          <Stack.Screen name="backup" options={{ presentation: 'modal', title: 'バックアップ' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

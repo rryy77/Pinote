@@ -8,9 +8,12 @@
     "scheme": "pinote",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.ryuufuji.pinote",
+      "supportsTablet": true
     },
     "android": {
+      "package": "com.ryuufuji.pinote",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -32,7 +35,28 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "メモを現在地に保存するために位置情報を使用します。"
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "メモを現在地に保存するために位置情報を使用します。"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "メモに添付する写真を選ぶために写真ライブラリにアクセスします。"
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
