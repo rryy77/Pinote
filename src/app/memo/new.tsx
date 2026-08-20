@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
+  InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -35,6 +37,8 @@ export default function NewMemoScreen() {
   const add = useMemoStore((s) => s.add);
   const markVisited = useCollectionStore((s) => s.markVisited);
   const bodyRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const bodyY = useRef(0);
 
   const initialLat = Number(lat);
   const initialLng = Number(lng);
@@ -96,7 +100,11 @@ export default function NewMemoScreen() {
             ) : null,
         }}
       />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag">
         <Text style={styles.label}>場所</Text>
         {pin ? (
           <>
@@ -143,6 +151,7 @@ export default function NewMemoScreen() {
           returnKeyType="next"
           blurOnSubmit={false}
           onSubmitEditing={() => bodyRef.current?.focus()}
+          inputAccessoryViewID="memoKeyboard"
         />
 
         <Text style={styles.label}>メモ</Text>
@@ -154,6 +163,13 @@ export default function NewMemoScreen() {
           placeholderTextColor={colors.subInk}
           style={[styles.input, styles.multiline]}
           multiline
+          inputAccessoryViewID="memoKeyboard"
+          onLayout={(e) => {
+            bodyY.current = e.nativeEvent.layout.y;
+          }}
+          onFocus={() =>
+            scrollRef.current?.scrollTo({ y: Math.max(0, bodyY.current - 24), animated: true })
+          }
         />
 
         <Text style={styles.label}>カテゴリ</Text>
@@ -174,6 +190,16 @@ export default function NewMemoScreen() {
           <Button label="キャンセル" variant="ghost" onPress={() => router.back()} />
         </View>
       </ScrollView>
+
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID="memoKeyboard">
+          <View style={styles.kbdBar}>
+            <Pressable onPress={() => Keyboard.dismiss()} hitSlop={8}>
+              <Text style={styles.kbdDone}>完了</Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -235,5 +261,20 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 20,
     gap: 12,
+  },
+  kbdBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.hairline,
+  },
+  kbdDone: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.brand,
   },
 });
