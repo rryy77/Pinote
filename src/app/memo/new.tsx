@@ -25,6 +25,7 @@ import { TagInput } from '@/components/pinote/tag-input';
 import { WantToGoToggle } from '@/components/pinote/want-to-go-toggle';
 import { DEFAULT_CATEGORY, getCategory } from '@/constants/categories';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import type { CategoryId } from '@/types/memo';
 
@@ -98,7 +99,18 @@ export default function NewMemoScreen() {
         photoUri,
       });
       // Coming from a collection candidate → mark it 制覇 and link the memo.
-      if (collectionItemId) await markVisited(collectionItemId, memo.id);
+      if (collectionItemId) {
+        await markVisited(collectionItemId, memo.id);
+      } else {
+        // Otherwise return to the map and fly to / highlight the new pin so the
+        // user sees exactly where it landed (esp. from share / search flows).
+        useMapFocus.getState().requestFocus({
+          kind: 'memo',
+          id: memo.id,
+          lat: pin.latitude,
+          lng: pin.longitude,
+        });
+      }
       router.back();
     } finally {
       setSaving(false);
