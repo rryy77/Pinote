@@ -9,7 +9,7 @@ import * as SQLite from 'expo-sqlite';
  */
 
 const DB_NAME = 'pinote.db';
-const LATEST_VERSION = 4;
+const LATEST_VERSION = 5;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -83,8 +83,40 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     version = 4;
   }
 
+  if (version < 5) {
+    // "行きたい" (want-to-go) state: a memo can be a planned place you haven't
+    // visited yet. Flips to 0 once you've been there.
+    await db.execAsync(`
+      ALTER TABLE memos ADD COLUMN want_to_go INTEGER NOT NULL DEFAULT 0;
+    `);
+    version = 5;
+  }
+
   if (version !== LATEST_VERSION) version = LATEST_VERSION;
   await db.execAsync(`PRAGMA user_version = ${version}`);
+
+  // Safety net: ensure every incrementally-added column actually exists. If a
+  // prior migration was interrupted (e.g. a hot reload landed mid-edit) the
+  // user_version can advance without its ALTER applying, leaving the schema
+  // behind the code. These idempotent checks heal that drift on next launch.
+  await ensureColumn(db, 'memos', 'rating', 'rating INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'memos', 'want_revisit', 'want_revisit INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn(db, 'memos', 'photo_uri', 'photo_uri TEXT');
+  await ensureColumn(db, 'memos', 'tags', "tags TEXT NOT NULL DEFAULT '[]'");
+  await ensureColumn(db, 'memos', 'want_to_go', 'want_to_go INTEGER NOT NULL DEFAULT 0');
+}
+
+/** Add a column only if it's missing (idempotent), to recover from schema drift. */
+async function ensureColumn(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  column: string,
+  ddl: string,
+): Promise<void> {
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (!cols.some((c) => c.name === column)) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  }
 }
 
 /** Returns the shared database connection, initializing it on first use. */

@@ -22,6 +22,7 @@ import { PinoteMap } from '@/components/pinote/pinote-map';
 import { RatingStars } from '@/components/pinote/rating-input';
 import { RevisitToggle } from '@/components/pinote/revisit-toggle';
 import { TagInput } from '@/components/pinote/tag-input';
+import { WantToGoToggle } from '@/components/pinote/want-to-go-toggle';
 import { DEFAULT_CATEGORY, getCategory } from '@/constants/categories';
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
@@ -29,11 +30,28 @@ import type { CategoryId } from '@/types/memo';
 
 export default function NewMemoScreen() {
   const router = useRouter();
-  const { lat, lng, title: titleParam, collectionItemId } = useLocalSearchParams<{
-    lat: string;
-    lng: string;
+  const {
+    lat,
+    lng,
+    title: titleParam,
+    collectionItemId,
+    prefillTitle,
+    prefillBody,
+    prefillLat,
+    prefillLng,
+    wantToGo: wantToGoParam,
+    from,
+  } = useLocalSearchParams<{
+    lat?: string;
+    lng?: string;
     title?: string;
     collectionItemId?: string;
+    prefillTitle?: string;
+    prefillBody?: string;
+    prefillLat?: string;
+    prefillLng?: string;
+    wantToGo?: string;
+    from?: string;
   }>();
   const add = useMemoStore((s) => s.add);
   const markVisited = useCollectionStore((s) => s.markVisited);
@@ -41,16 +59,18 @@ export default function NewMemoScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const bodyY = useRef(0);
 
-  const initialLat = Number(lat);
-  const initialLng = Number(lng);
+  const initialLat = Number(lat ?? prefillLat);
+  const initialLng = Number(lng ?? prefillLng);
   const hasInitial = Number.isFinite(initialLat) && Number.isFinite(initialLng);
+  const fromShare = from === 'share';
 
-  const [title, setTitle] = useState(titleParam ?? '');
-  const [body, setBody] = useState('');
+  const [title, setTitle] = useState(titleParam ?? prefillTitle ?? '');
+  const [body, setBody] = useState(prefillBody ?? '');
   const [category, setCategory] = useState<CategoryId>(DEFAULT_CATEGORY);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [rating, setRating] = useState(0);
   const [wantRevisit, setWantRevisit] = useState(false);
+  const [wantToGo, setWantToGo] = useState(wantToGoParam === '1');
   const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -73,6 +93,7 @@ export default function NewMemoScreen() {
         lng: pin.longitude,
         rating,
         wantRevisit,
+        wantToGo,
         tags,
         photoUri,
       });
@@ -137,9 +158,29 @@ export default function NewMemoScreen() {
             </View>
           </>
         ) : (
-          <View style={styles.hintRow}>
-            <Ionicons name="warning-outline" size={15} color="#B45309" />
-            <Text style={styles.coords}>位置情報が取得できませんでした</Text>
+          <View style={styles.noPin}>
+            <View style={styles.hintRow}>
+              <Ionicons name="warning-outline" size={15} color="#B45309" />
+              <Text style={styles.coords}>
+                {fromShare ? '共有先の場所が特定できませんでした' : '位置情報が取得できませんでした'}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() =>
+                router.replace({
+                  pathname: '/search',
+                  params: {
+                    ...(title.trim() ? { q: title.trim() } : {}),
+                    ...(body.trim() ? { body: body.trim() } : {}),
+                    wantToGo: wantToGo ? '1' : '',
+                    from: 'share',
+                  },
+                })
+              }
+              style={({ pressed }) => [styles.pickPlace, pressed && styles.pressed]}>
+              <Ionicons name="search" size={16} color={colors.onAccent} />
+              <Text style={styles.pickPlaceText}>名前で場所を検索して選ぶ</Text>
+            </Pressable>
           </View>
         )}
 
@@ -186,6 +227,10 @@ export default function NewMemoScreen() {
 
         <Text style={styles.label}>評価</Text>
         <RatingStars value={rating} onChange={setRating} size={30} />
+
+        <View style={styles.revisitRow}>
+          <WantToGoToggle value={wantToGo} onChange={setWantToGo} />
+        </View>
 
         <View style={styles.revisitRow}>
           <RevisitToggle value={wantRevisit} onChange={setWantRevisit} />
@@ -236,6 +281,27 @@ const styles = StyleSheet.create({
   mapHint: {
     fontSize: 12,
     color: colors.subInk,
+  },
+  noPin: {
+    gap: 12,
+    marginTop: 6,
+  },
+  pickPlace: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+  },
+  pickPlaceText: {
+    color: colors.onAccent,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.85,
   },
   label: {
     fontSize: 14,

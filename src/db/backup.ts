@@ -9,7 +9,7 @@ import { createMemo, listMemos } from './memos';
  * later import — the safety net for device-only storage.
  */
 
-const BACKUP_VERSION = 2;
+const BACKUP_VERSION = 3;
 
 type BackupMemo = {
   title: string;
@@ -19,6 +19,7 @@ type BackupMemo = {
   lng: number;
   rating: number;
   wantRevisit: boolean;
+  wantToGo?: boolean;
   tags?: string[];
   createdAt: number;
   updatedAt: number;
@@ -51,6 +52,7 @@ async function buildBackupJson(): Promise<string> {
       lng: m.lng,
       rating: m.rating,
       wantRevisit: m.wantRevisit,
+      wantToGo: m.wantToGo,
       tags: m.tags,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
@@ -98,6 +100,7 @@ export async function importBackup(uri: string): Promise<number> {
       lng: m.lng,
       rating: m.rating ?? 0,
       wantRevisit: m.wantRevisit ?? false,
+      wantToGo: m.wantToGo ?? false,
       tags: m.tags ?? [],
       photoUri: photoSource,
     });

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -13,9 +12,12 @@ import {
 } from 'react-native';
 
 import { colors } from '@/constants/colors';
+import { useCurrentLocation } from '@/location/use-current-location';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { formatDistance, haversine } from '@/utils/distance';
+import { searchPlaces, type PlaceHit } from '@/utils/geosearch';
 
-type PlaceResult = { latitude: number; longitude: number; label: string };
+type PlaceResult = PlaceHit;
 
 /**
  * Place search: geocode a shop / address / place name into real-world
@@ -27,9 +29,16 @@ type PlaceResult = { latitude: number; longitude: number; label: string };
  */
 export default function SearchScreen() {
   const router = useRouter();
-  const { addTo } = useLocalSearchParams<{ addTo?: string }>();
+  const { addTo, q, body, wantToGo, from } = useLocalSearchParams<{
+    addTo?: string;
+    q?: string;
+    body?: string;
+    wantToGo?: string;
+    from?: string;
+  }>();
   const addItem = useCollectionStore((s) => s.addItem);
-  const [query, setQuery] = useState('');
+  const { coords } = useCurrentLocation();
+  const [query, setQuery] = useState(q ?? '');
   const [places, setPlaces] = useState<PlaceResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -39,24 +48,7 @@ export default function SearchScreen() {
     if (!q) return;
     setSearching(true);
     try {
-      const locs = await Location.geocodeAsync(q);
-      const results = await Promise.all(
-        locs.slice(0, 6).map(async (l) => {
-          let label = q;
-          try {
-            const rev = await Location.reverseGeocodeAsync({
-              latitude: l.latitude,
-              longitude: l.longitude,
-            });
-            const a = rev[0];
-            if (a) label = [a.name, a.city, a.region].filter(Boolean).join(' ') || q;
-          } catch {
-            // keep the typed query as the label
-          }
-          return { latitude: l.latitude, longitude: l.longitude, label };
-        }),
-      );
-      setPlaces(results);
+      setPlaces(await searchPlaces(q, coords ?? undefined));
     } catch {
       setPlaces([]);
     } finally {
@@ -74,7 +66,14 @@ export default function SearchScreen() {
     }
     router.replace({
       pathname: '/memo/new',
-      params: { lat: String(p.latitude), lng: String(p.longitude), title },
+      params: {
+        lat: String(p.latitude),
+        lng: String(p.longitude),
+        title,
+        ...(body ? { prefillBody: body } : {}),
+        ...(wantToGo ? { wantToGo } : {}),
+        ...(from ? { from } : {}),
+      },
     });
   };
 
@@ -142,7 +141,16 @@ export default function SearchScreen() {
               <Text style={styles.placeLabel} numberOfLines={1}>
                 {item.label}
               </Text>
-              <Text style={styles.placeAction}>{addTo ? '候補に追加' : 'ここにメモを残す'}</Text>
+              <View style={styles.placeMetaRow}>
+                {coords && (
+                  <Text style={styles.placeDistance}>
+                    {formatDistance(
+                      haversine(coords, { latitude: item.latitude, longitude: item.longitude }),
+                    )}
+                  </Text>
+                )}
+                <Text style={styles.placeAction}>{addTo ? '候補に追加' : 'ここにメモを残す'}</Text>
+              </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.faint} />
           </Pressable>
@@ -216,6 +224,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.ink,
+  },
+  placeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  placeDistance: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.subInk,
   },
   placeAction: {
     fontSize: 13,

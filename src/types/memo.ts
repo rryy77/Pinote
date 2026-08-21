@@ -15,6 +15,8 @@ export type Memo = {
   rating: number;
   /** "Want to revisit" flag. */
   wantRevisit: boolean;
+  /** "Want to go" flag — a planned place not visited yet (行きたい). */
+  wantToGo: boolean;
   /** Free-form tags (without the leading #), e.g. ["絶景", "穴場"]. */
   tags: string[];
   /** Persistent local uri of an attached photo, or null. */
@@ -37,6 +39,7 @@ export type NewMemo = {
   lng: number;
   rating?: number;
   wantRevisit?: boolean;
+  wantToGo?: boolean;
   tags?: string[];
   photoUri?: string | null;
 };

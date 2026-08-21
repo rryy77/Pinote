@@ -19,6 +19,7 @@ type MemoRow = {
   lng: number;
   rating: number;
   want_revisit: number;
+  want_to_go: number;
   tags: string | null;
   photo_uri: string | null;
   created_at: number;
@@ -60,6 +61,7 @@ function toMemo(row: MemoRow): Memo {
     lng: row.lng,
     rating: row.rating,
     wantRevisit: row.want_revisit === 1,
+    wantToGo: row.want_to_go === 1,
     tags: parseTags(row.tags),
     photoUri: row.photo_uri,
     createdAt: row.created_at,
@@ -96,13 +98,14 @@ export async function createMemo(input: NewMemo): Promise<Memo> {
     lng: input.lng,
     rating: input.rating ?? 0,
     wantRevisit: input.wantRevisit ?? false,
+    wantToGo: input.wantToGo ?? false,
     tags: normalizeTags(input.tags ?? []),
     photoUri,
     createdAt: now,
     updatedAt: now,
   };
   await db.runAsync(
-    'INSERT INTO memos (id, title, body, category, lat, lng, rating, want_revisit, tags, photo_uri, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO memos (id, title, body, category, lat, lng, rating, want_revisit, want_to_go, tags, photo_uri, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     memo.id,
     memo.title,
     memo.body,
@@ -111,6 +114,7 @@ export async function createMemo(input: NewMemo): Promise<Memo> {
     memo.lng,
     memo.rating,
     memo.wantRevisit ? 1 : 0,
+    memo.wantToGo ? 1 : 0,
     JSON.stringify(memo.tags),
     memo.photoUri,
     memo.createdAt,
@@ -120,7 +124,10 @@ export async function createMemo(input: NewMemo): Promise<Memo> {
 }
 
 export type MemoPatch = Partial<
-  Pick<Memo, 'title' | 'body' | 'category' | 'lat' | 'lng' | 'rating' | 'wantRevisit' | 'tags' | 'photoUri'>
+  Pick<
+    Memo,
+    'title' | 'body' | 'category' | 'lat' | 'lng' | 'rating' | 'wantRevisit' | 'wantToGo' | 'tags' | 'photoUri'
+  >
 >;
 
 /**
@@ -155,12 +162,13 @@ export async function updateMemo(id: string, patch: MemoPatch): Promise<Memo | n
   const lng = patch.lng ?? existing.lng;
   const rating = patch.rating ?? existing.rating;
   const wantRevisit = patch.wantRevisit ?? existing.wantRevisit;
+  const wantToGo = patch.wantToGo ?? existing.wantToGo;
   const tags = patch.tags ? normalizeTags(patch.tags) : existing.tags;
   const photoUri = resolvePhoto(id, existing.photoUri, patch.photoUri);
   const now = Date.now();
 
   await db.runAsync(
-    'UPDATE memos SET title = ?, body = ?, category = ?, lat = ?, lng = ?, rating = ?, want_revisit = ?, tags = ?, photo_uri = ?, updated_at = ? WHERE id = ?',
+    'UPDATE memos SET title = ?, body = ?, category = ?, lat = ?, lng = ?, rating = ?, want_revisit = ?, want_to_go = ?, tags = ?, photo_uri = ?, updated_at = ? WHERE id = ?',
     title,
     body,
     category,
@@ -168,12 +176,26 @@ export async function updateMemo(id: string, patch: MemoPatch): Promise<Memo | n
     lng,
     rating,
     wantRevisit ? 1 : 0,
+    wantToGo ? 1 : 0,
     JSON.stringify(tags),
     photoUri,
     now,
     id,
   );
-  return { ...existing, title, body, category, lat, lng, rating, wantRevisit, tags, photoUri, updatedAt: now };
+  return {
+    ...existing,
+    title,
+    body,
+    category,
+    lat,
+    lng,
+    rating,
+    wantRevisit,
+    wantToGo,
+    tags,
+    photoUri,
+    updatedAt: now,
+  };
 }
 
 /** Permanently delete a memo and its photo. */

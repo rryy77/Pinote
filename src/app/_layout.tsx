@@ -4,7 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ShareIntentProvider } from 'expo-share-intent';
 
+import { ShareIntentHandler } from '@/components/pinote/share-intent-handler';
 import { useCollectionStore } from '@/store/useCollectionStore';
 import { useMemoStore } from '@/store/useMemoStore';
 import { useThemeStore } from '@/store/useThemeStore';
@@ -27,9 +29,11 @@ export default function RootLayout() {
   }, [load, loadCollections]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+    <ShareIntentProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ShareIntentHandler />
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen
             name="memo/new"
@@ -45,9 +49,10 @@ export default function RootLayout() {
           <Stack.Screen name="collections/[id]" options={{ title: 'コレクション' }} />
           <Stack.Screen name="backup" options={{ presentation: 'modal', title: 'バックアップ' }} />
           <Stack.Screen name="appearance" options={{ presentation: 'modal', title: '見た目' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </GestureHandlerRootView>
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </ShareIntentProvider>
   );
 }

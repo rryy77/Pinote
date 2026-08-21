@@ -213,6 +213,12 @@ export default function MemoDetailScreen() {
                 <Ionicons name={cat.icon} size={15} color={cat.tint} />
                 <Text style={[styles.badgeText, { color: cat.tint }]}>{cat.label}</Text>
               </View>
+              {memo.wantToGo && (
+                <View style={styles.wantBadge}>
+                  <Ionicons name="bookmark" size={15} color={colors.brand} />
+                  <Text style={styles.wantBadgeText}>行きたい</Text>
+                </View>
+              )}
               {memo.wantRevisit && (
                 <View style={styles.revisitBadge}>
                   <Ionicons name="repeat" size={15} color="#B45309" />
@@ -251,6 +257,21 @@ export default function MemoDetailScreen() {
             </View>
 
             <View style={styles.actions}>
+              <Pressable
+                onPress={() => update(memo.id, { wantToGo: !memo.wantToGo })}
+                style={({ pressed }) => [
+                  memo.wantToGo ? styles.visitedCta : styles.addToCollection,
+                  pressed && { opacity: 0.7 },
+                ]}>
+                <Ionicons
+                  name={memo.wantToGo ? 'checkmark-circle' : 'bookmark-outline'}
+                  size={18}
+                  color={memo.wantToGo ? colors.onAccent : colors.brand}
+                />
+                <Text style={memo.wantToGo ? styles.visitedCtaText : styles.addToCollectionText}>
+                  {memo.wantToGo ? '行ってきた！（記録にする）' : '行きたいに追加'}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() => {
                   useMapFocus.getState().requestFocus({
@@ -420,6 +441,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#B45309',
   },
+  wantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: colors.brandSoft,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  wantBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.brand,
+  },
   ratingRow: {
     marginTop: 8,
   },
@@ -508,6 +543,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: colors.brand,
+  },
+  visitedCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: colors.brand,
+  },
+  visitedCtaText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.onAccent,
   },
   pickerHeader: {
     flexDirection: 'row',

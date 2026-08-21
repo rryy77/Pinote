@@ -56,7 +56,18 @@
           "photosPermission": "メモに添付する写真を選ぶために写真ライブラリにアクセスします。"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true
+          },
+          "iosAppGroupIdentifier": "group.com.ryuufuji.pinote"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

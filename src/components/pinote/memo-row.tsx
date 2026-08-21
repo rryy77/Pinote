@@ -46,6 +46,12 @@ export function MemoRow({ memo, distance, onPress, onLongPress }: Props) {
             {cat.label}
             {distance ? ` ・ ${distance}` : ''}
           </Text>
+          {memo.wantToGo && (
+            <View style={styles.want}>
+              <Ionicons name="bookmark" size={13} color={colors.brand} />
+              <Text style={styles.wantText}>行きたい</Text>
+            </View>
+          )}
           {memo.wantRevisit && (
             <View style={styles.revisit}>
               <Ionicons name="repeat" size={13} color="#B45309" />
@@ -121,6 +127,16 @@ const styles = StyleSheet.create({
   revisitText: {
     fontSize: 12,
     color: '#B45309',
+    fontWeight: '600',
+  },
+  want: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  wantText: {
+    fontSize: 12,
+    color: colors.brand,
     fontWeight: '600',
   },
   tags: {

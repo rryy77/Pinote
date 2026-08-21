@@ -9,7 +9,11 @@ export type ClusterPoint =
       latitude: number;
       longitude: number;
       count: number;
+      /** The shared category of the cluster's members (clusters never mix categories). */
+      category: string;
       memoIds: string[];
+      /** Member coordinates, so a tap can zoom to frame them. */
+      points: { latitude: number; longitude: number }[];
     };
 
 /** Approx. cluster radius in screen pixels used to derive the grid cell size. */
@@ -25,6 +29,9 @@ function cellSize(zoom: number): number {
  * Grid-cluster memos based on the current zoom. Cells shrink as you zoom in, so
  * nearby pins merge when zoomed out and separate when zoomed in. Clustering
  * depends only on zoom (not the map center), so panning never re-clusters.
+ *
+ * Cells are keyed by category too, so a cluster only ever groups memos of one
+ * category — the bubble can then be tinted and read as "N of this kind here".
  */
 export function clusterMemos(memos: Memo[], zoom: number): ClusterPoint[] {
   if (memos.length === 0) return [];
@@ -32,7 +39,7 @@ export function clusterMemos(memos: Memo[], zoom: number): ClusterPoint[] {
   const cells = new Map<string, Memo[]>();
 
   for (const m of memos) {
-    const key = `${Math.floor(m.lng / cell)}:${Math.floor(m.lat / cell)}`;
+    const key = `${m.category}:${Math.floor(m.lng / cell)}:${Math.floor(m.lat / cell)}`;
     const group = cells.get(key);
     if (group) group.push(m);
     else cells.set(key, [m]);
@@ -52,7 +59,9 @@ export function clusterMemos(memos: Memo[], zoom: number): ClusterPoint[] {
       latitude,
       longitude,
       count: group.length,
+      category: group[0].category,
       memoIds: group.map((m) => m.id),
+      points: group.map((m) => ({ latitude: m.lat, longitude: m.lng })),
     });
   }
   return points;

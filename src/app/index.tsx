@@ -182,8 +182,10 @@ export default function HomeScreen() {
           latitude: p.memo.lat,
           longitude: p.memo.lng,
           title: p.memo.title,
+          // 行きたい (planned, not visited yet): keep the category color but use a
+          // bookmark glyph so planned spots read differently from visited memos.
           tint: c.tint,
-          symbol: c.symbol,
+          symbol: p.memo.wantToGo ? 'bookmark.fill' : c.symbol,
         });
       } else {
         clusterList.push({
@@ -191,6 +193,8 @@ export default function HomeScreen() {
           latitude: p.latitude,
           longitude: p.longitude,
           count: p.count,
+          tint: getCategory(p.category).tint,
+          points: p.points,
         });
       }
     }
@@ -287,18 +291,21 @@ export default function HomeScreen() {
     if (coords) mapRef.current?.setCamera({ ...coords, zoom: 15 });
   };
 
+  // Tapping a cluster zooms in to break it apart: frame its members, but always
+  // jump in by at least a couple levels so a tight group still visibly separates.
   const expandCluster = (id: string) => {
     const c = clusters.find((x) => x.id === id);
-    if (c) {
-      mapRef.current?.setCamera({
-        latitude: c.latitude,
-        longitude: c.longitude,
-        zoom: Math.min(zoom + 2, 18),
-      });
-    }
+    if (!c) return;
+    const framed = cameraForPoints(c.points);
+    const target = framed
+      ? { latitude: framed.latitude, longitude: framed.longitude, zoom: framed.zoom }
+      : { latitude: c.latitude, longitude: c.longitude, zoom: zoom + 2 };
+    target.zoom = Math.min(18, Math.max(target.zoom, zoom + 2));
+    mapRef.current?.setCamera(target);
   };
 
-  // In "view" mode, tapping a pin surfaces its info card on the map (no page jump).
+  // In "view" mode, tapping a pin surfaces its info card on the map (no page jump)
+  // and zooms in to that spot, just like tapping a cluster does.
   // In collection mode, a visited pin opens its linked memo.
   const onMarkerPress = (id: string) => {
     if (activeCollection) {
@@ -306,7 +313,17 @@ export default function HomeScreen() {
       if (item?.memoId) router.push({ pathname: '/memo/[id]', params: { id: item.memoId } });
       return;
     }
-    if (mode === 'view') setSelectedId(id);
+    if (mode === 'view') {
+      setSelectedId(id);
+      const m = memos.find((x) => x.id === id);
+      if (m) {
+        mapRef.current?.setCamera({
+          latitude: m.lat,
+          longitude: m.lng,
+          zoom: Math.max(zoom, 16),
+        });
+      }
+    }
   };
 
   const enterCreate = () => {

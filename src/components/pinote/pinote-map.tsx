@@ -28,6 +28,10 @@ export type ClusterMarker = {
   latitude: number;
   longitude: number;
   count: number;
+  /** Bubble color — the category tint of the grouped memos. */
+  tint: string;
+  /** Member coordinates, used to frame the group when the bubble is tapped. */
+  points: { latitude: number; longitude: number }[];
 };
 
 export type CameraTarget = { latitude: number; longitude: number; zoom?: number };
@@ -59,7 +63,6 @@ type Props = {
 };
 
 const DEFAULT_ZOOM = 15;
-const CLUSTER_COLOR = colors.brand;
 
 export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
   {
@@ -159,9 +162,9 @@ export const PinoteMap = forwardRef<PinoteMapHandle, Props>(function PinoteMap(
           id: c.id,
           coordinates: { latitude: c.latitude, longitude: c.longitude },
           text: String(c.count),
-          backgroundColor: CLUSTER_COLOR,
+          backgroundColor: c.tint,
           textColor: colors.onAccent,
-          title: `${c.count}件のメモ`,
+          title: `${c.count}件ここにあります`,
         }))}
         onMarkerClick={(marker) => {
           if (marker.id) onMarkerPress?.(marker.id);

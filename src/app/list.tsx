@@ -49,8 +49,10 @@ export default function LibraryScreen() {
   const [catFilter, setCatFilter] = useState<CategoryId | null>(null);
   const [topRated, setTopRated] = useState(false);
   const [revisitOnly, setRevisitOnly] = useState(false);
+  const [wantOnly, setWantOnly] = useState(false);
 
-  const activeFilters = (catFilter ? 1 : 0) + (topRated ? 1 : 0) + (revisitOnly ? 1 : 0);
+  const activeFilters =
+    (catFilter ? 1 : 0) + (topRated ? 1 : 0) + (revisitOnly ? 1 : 0) + (wantOnly ? 1 : 0);
 
   const memoResults = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -69,6 +71,7 @@ export default function LibraryScreen() {
       if (catFilter && m.category !== catFilter) return false;
       if (topRated && m.rating < 4) return false;
       if (revisitOnly && !m.wantRevisit) return false;
+      if (wantOnly && !m.wantToGo) return false;
       return true;
     });
     if (coords) {
@@ -79,7 +82,7 @@ export default function LibraryScreen() {
       );
     }
     return list;
-  }, [memos, query, coords, catFilter, topRated, revisitOnly]);
+  }, [memos, query, coords, catFilter, topRated, revisitOnly, wantOnly]);
 
   // Timeline: memos grouped into date sections, newest first.
   const sections = useMemo(() => {
@@ -137,6 +140,12 @@ export default function LibraryScreen() {
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.filterRow}>
+            <FilterChip
+              icon="bookmark"
+              label="行きたい"
+              active={wantOnly}
+              onPress={() => setWantOnly((v) => !v)}
+            />
             <FilterChip
               icon="star"
               label="★4以上"
