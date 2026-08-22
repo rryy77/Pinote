@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  FadeInDown,
+  FadeOut,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -13,9 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryFilter, type CategoryFilterValue } from '@/components/pinote/category-filter';
 import { CenterPin } from '@/components/pinote/center-pin';
+import { LaunchAnimation } from '@/components/pinote/launch-animation';
 import { MemoCard } from '@/components/pinote/memo-card';
 import { ModeSwitch } from '@/components/pinote/mode-switch';
 import { Onboarding } from '@/components/pinote/onboarding';
+import { SignInIntro } from '@/components/pinote/sign-in-intro';
 import { ThemeChoice } from '@/components/pinote/theme-choice';
 import { ToolsMenu } from '@/components/pinote/tools-menu';
 import {
@@ -27,10 +31,14 @@ import {
 import { getCategory } from '@/constants/categories';
 import { colors } from '@/constants/colors';
 import { useCurrentLocation } from '@/location/use-current-location';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useGroupStore } from '@/store/useGroupStore';
 import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import type { SharedMemo } from '@/types/group';
+import type { Memo } from '@/types/memo';
 import { clusterMemos } from '@/utils/cluster';
 import { formatDistance, haversine } from '@/utils/distance';
 import { hasOnboarded, setOnboarded } from '@/utils/onboarding';
@@ -57,6 +65,26 @@ function cameraForPoints(
   const span = Math.max(maxLat - minLat, maxLng - minLng) || 0.01;
   const zoom = Math.max(3, Math.min(16, Math.log2(360 / span) - 1.2));
   return { latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2, zoom };
+}
+
+/** Adapt a cloud shared memo to the local Memo shape so it flows through the same
+ *  map/cluster/card pipeline. `wantRevisit` doesn't exist on shared memos. */
+function sharedToMemo(s: SharedMemo): Memo {
+  return {
+    id: s.id,
+    title: s.title,
+    body: s.body,
+    category: s.category,
+    lat: s.lat,
+    lng: s.lng,
+    rating: s.rating,
+    wantRevisit: false,
+    wantToGo: s.wantToGo,
+    tags: s.tags,
+    photoUri: s.photoUrl,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  };
 }
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -92,9 +120,50 @@ export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [showThemePick, setShowThemePick] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showLaunch, setShowLaunch] = useState(true);
+  // The group banner is a brief (~3s) hint on switch, then it hides so the
+  // category filter isn't blocked; the right-side button remains to switch maps.
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const themeMode = useThemeStore((s) => s.mode);
   const setThemeMode = useThemeStore((s) => s.setMode);
+  const authUser = useAuthStore((s) => s.user);
+
+  // Cloud sharing: which map is showing (null = personal SQLite), plus its memos.
+  const activeGroupId = useGroupStore((s) => s.activeGroupId);
+  const groups = useGroupStore((s) => s.groups);
+  const sharedMemos = useGroupStore((s) => s.sharedMemos);
+  const loadGroups = useGroupStore((s) => s.loadGroups);
+  const setActiveGroup = useGroupStore((s) => s.setActiveGroup);
+  const resetGroups = useGroupStore((s) => s.reset);
+  const activeGroup = activeGroupId ? groups.find((g) => g.id === activeGroupId) ?? null : null;
+
+  // Load the user's groups when signed in; drop cloud state entirely on sign-out.
+  useEffect(() => {
+    if (authUser) void loadGroups().catch(() => {});
+    else resetGroups();
+  }, [authUser, loadGroups, resetGroups]);
+
+  // A group map and a collection lens are mutually exclusive on screen.
+  useEffect(() => {
+    if (activeGroupId) setCollectionId(null);
+  }, [activeGroupId]);
+
+  // Show the group banner for ~3s each time you switch into a group, then hide it.
+  useEffect(() => {
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    if (activeGroupId) {
+      setBannerVisible(true);
+      bannerTimer.current = setTimeout(() => setBannerVisible(false), 3000);
+    } else {
+      setBannerVisible(false);
+    }
+    return () => {
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    };
+  }, [activeGroupId]);
 
   // Theme switch "circular reveal": the new background spreads from the button.
   const [reveal, setReveal] = useState<{ x: number; y: number; color: string } | null>(null);
@@ -163,9 +232,16 @@ export default function HomeScreen() {
 
   // Selecting a category shows only that category's memos, plus Apple's nearby
   // places of that kind (e.g. 食事 → restaurants). "all" shows every memo, no POIs.
+  // The pins on the map come from either the personal store or the active group.
+  const groupMemos = useMemo(
+    () => (activeGroup ? sharedMemos.map(sharedToMemo) : []),
+    [activeGroup, sharedMemos],
+  );
+  const sourceMemos = activeGroup ? groupMemos : memos;
+
   const visibleMemos = useMemo(
-    () => (filter === 'all' ? memos : memos.filter((m) => m.category === filter)),
-    [memos, filter],
+    () => (filter === 'all' ? sourceMemos : sourceMemos.filter((m) => m.category === filter)),
+    [sourceMemos, filter],
   );
   const memoLayer = useMemo(() => {
     const markerList: PinMarker[] = [];
@@ -249,8 +325,8 @@ export default function HomeScreen() {
     activeCollection || filter === 'all' || mode === 'create' ? [] : getCategory(filter).poi;
 
   const selectedMemo = useMemo(
-    () => (selectedId ? memos.find((m) => m.id === selectedId) ?? null : null),
-    [memos, selectedId],
+    () => (selectedId ? sourceMemos.find((m) => m.id === selectedId) ?? null : null),
+    [sourceMemos, selectedId],
   );
 
   // Center the map on the user the first time their location resolves.
@@ -315,7 +391,7 @@ export default function HomeScreen() {
     }
     if (mode === 'view') {
       setSelectedId(id);
-      const m = memos.find((x) => x.id === id);
+      const m = sourceMemos.find((x) => x.id === id);
       if (m) {
         mapRef.current?.setCamera({
           latitude: m.lat,
@@ -344,7 +420,12 @@ export default function HomeScreen() {
     const c = centerRef.current;
     router.push({
       pathname: '/memo/new',
-      params: { lat: String(c.latitude), lng: String(c.longitude) },
+      params: {
+        lat: String(c.latitude),
+        lng: String(c.longitude),
+        // When a group map is active, the new memo is saved to that group.
+        ...(activeGroupId ? { groupId: activeGroupId } : {}),
+      },
     });
   };
 
@@ -352,6 +433,13 @@ export default function HomeScreen() {
     coords ? formatDistance(haversine(coords, { latitude: m.lat, longitude: m.lng })) : null;
 
   const bottomBase = insets.bottom + 8;
+
+  // Display for the persistent group indicator. Driven by the stable activeGroupId
+  // (not the derived object) with fallbacks, so it never blinks out mid-refresh.
+  const inGroup = activeGroupId !== null && !activeCollection;
+  const groupName = activeGroup?.name ?? '共有マップ';
+  const groupIcon = activeGroup?.icon ?? '👥';
+  const groupColor = activeGroup?.color ?? colors.brand;
 
   return (
     <View style={styles.container}>
@@ -396,12 +484,41 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* Brief "you're now on this group's map" hint. Shows ~3s on switch then
+          fades, so it doesn't block the category filter underneath. The right-side
+          map-switch button stays available to change maps anytime. */}
+      {inGroup && bannerVisible && (
+        <Animated.View
+          entering={FadeInDown.duration(320)}
+          exiting={FadeOut.duration(400)}
+          style={[styles.banner, styles.bannerOver, { top: insets.top + 8 }]}>
+          <Pressable style={styles.bannerTap} onPress={() => router.push('/groups')}>
+            <View style={[styles.bannerBadge, { backgroundColor: groupColor + '22' }]}>
+              <Text style={styles.bannerBadgeEmoji}>{groupIcon}</Text>
+            </View>
+            <View style={styles.bannerBody}>
+              <Text style={styles.bannerName} numberOfLines={1}>
+                {groupName}
+              </Text>
+              <Text style={[styles.bannerCount, { color: groupColor }]}>共有マップ・タップで切替</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={() => void setActiveGroup(null)}
+            hitSlop={8}
+            style={styles.bannerClose}>
+            <Ionicons name="close" size={18} color={colors.subInk} />
+          </Pressable>
+        </Animated.View>
+      )}
+
       {/* One consolidated "tools" button (top-right) that pops open its actions,
           iOS-folder style. */}
       <ToolsMenu
         open={menuOpen}
         onToggle={() => setMenuOpen((v) => !v)}
         insetTop={insets.top}
+        itemBaseTop={220}
         actions={[
           {
             key: 'search',
@@ -423,31 +540,46 @@ export default function HomeScreen() {
             },
           },
           {
-            key: 'recenter',
-            icon: 'locate',
-            color: colors.brand,
-            onPress: () => {
-              setMenuOpen(false);
-              recenter();
-            },
-          },
-          {
-            key: 'theme',
-            icon: themeMode === 'dark' ? 'sunny' : 'moon',
-            color: colors.ink,
-            onPress: runThemeToggle,
-          },
-          {
-            key: 'appearance',
-            icon: 'color-palette-outline',
+            key: 'settings',
+            icon: 'settings-outline',
             color: colors.ink,
             onPress: () => {
               setMenuOpen(false);
-              router.push('/appearance');
+              router.push('/settings');
             },
           },
         ]}
       />
+
+      {/* Standalone "recenter" button — kept outside the tools folder, directly
+          under it, so it's always one tap away. */}
+      <Pressable
+        onPress={recenter}
+        style={({ pressed }) => [
+          styles.recenterBtn,
+          { top: insets.top + 116, right: 16 },
+          pressed && styles.pressed,
+        ]}>
+        <Ionicons name="locate" size={20} color={colors.brand} />
+      </Pressable>
+
+      {/* Standalone map-switch button (always present). Opens the switcher to
+          change between the personal map and any group; in a group it shows that
+          group's emoji + color so it doubles as the persistent indicator. */}
+      <Pressable
+        onPress={() => router.push('/groups')}
+        style={({ pressed }) => [
+          styles.recenterBtn,
+          { top: insets.top + 168, right: 16 },
+          inGroup && { backgroundColor: groupColor + '22', borderWidth: 2, borderColor: groupColor },
+          pressed && styles.pressed,
+        ]}>
+        {inGroup ? (
+          <Text style={styles.mapSwitchEmoji}>{groupIcon}</Text>
+        ) : (
+          <Ionicons name="people-outline" size={20} color={colors.brand} />
+        )}
+      </Pressable>
 
       {/* Info card (view mode) sits just above the mode switch. */}
       {mode === 'view' && !activeCollection && selectedMemo && (
@@ -457,7 +589,11 @@ export default function HomeScreen() {
             distance={distanceOf(selectedMemo)}
             onClose={() => setSelectedId(null)}
             onOpenDetail={() =>
-              router.push({ pathname: '/memo/[id]', params: { id: selectedMemo.id } })
+              router.push(
+                activeGroup
+                  ? { pathname: '/shared/[id]', params: { id: selectedMemo.id } }
+                  : { pathname: '/memo/[id]', params: { id: selectedMemo.id } },
+              )
             }
           />
         </View>
@@ -527,12 +663,20 @@ export default function HomeScreen() {
 
       {showThemePick && (
         <ThemeChoice
-          onPick={(m) => {
-            setThemeMode(m);
-            setShowThemePick(false);
+          onApply={(m) => setThemeMode(m)}
+          onConfirm={() => {
+            // Cross-fade the sign-in prompt in as the theme screen fades out
+            // (guests included, to nudge a real account; real users skip straight in).
+            if (!authUser || authUser.is_anonymous) setShowSignIn(true);
           }}
+          onDone={() => setShowThemePick(false)}
         />
       )}
+
+      {showSignIn && <SignInIntro onDone={() => setShowSignIn(false)} />}
+
+      {/* Launch flourish: bridges the native splash into the map on every open. */}
+      {showLaunch && <LaunchAnimation onDone={() => setShowLaunch(false)} />}
     </View>
   );
 }
@@ -564,8 +708,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
   },
+  bannerTap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   bannerEmoji: {
     fontSize: 24,
+  },
+  bannerOver: {
+    zIndex: 20,
+  },
+  bannerBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerBadgeEmoji: {
+    fontSize: 18,
   },
   bannerBody: {
     flex: 1,
@@ -673,6 +836,23 @@ const styles = StyleSheet.create({
   reveal: {
     position: 'absolute',
     zIndex: 50,
+  },
+  recenterBtn: {
+    position: 'absolute',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  mapSwitchEmoji: {
+    fontSize: 20,
   },
   pressed: {
     opacity: 0.85,

@@ -5,14 +5,11 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/constants/colors';
-import { useThemeStore } from '@/store/useThemeStore';
 import { ACCENTS, getStoredAccentId, setStoredAccentId } from '@/utils/accent';
 
-/** Appearance settings: light/dark (live) and the main accent color (reloads). */
+/** Main accent color picker. Light/dark lives in Settings → テーマ. */
 export default function AppearanceScreen() {
   const router = useRouter();
-  const mode = useThemeStore((s) => s.mode);
-  const setMode = useThemeStore((s) => s.setMode);
 
   const current = getStoredAccentId();
   const [selected, setSelected] = useState(current);
@@ -78,25 +75,11 @@ export default function AppearanceScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>明るさ</Text>
-        <View style={styles.segment}>
-          <Seg label="ライト" active={mode === 'light'} onPress={() => setMode('light')} />
-          <Seg label="ダーク" active={mode === 'dark'} onPress={() => setMode('dark')} />
-        </View>
-
         <Text style={styles.note}>
           メインカラーを選ぶと、確認のうえアプリを再起動して反映します。
         </Text>
       </ScrollView>
     </View>
-  );
-}
-
-function Seg({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.seg, active && styles.segActive]}>
-      <Text style={[styles.segText, active && styles.segTextActive]}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -146,33 +129,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   swatchLabel: { fontSize: 12, fontWeight: '600', color: colors.subInk },
-  segment: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: colors.bg,
-  },
-  seg: { flex: 1, height: 40, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  segActive: {
-    backgroundColor: colors.surface,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
-  },
-  segText: { fontSize: 15, fontWeight: '700', color: colors.subInk },
-  segTextActive: { color: colors.ink },
-  apply: {
-    marginTop: 28,
-    height: 54,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  applyText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
   note: {
     marginTop: 10,
     fontSize: 13,

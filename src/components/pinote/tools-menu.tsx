@@ -27,6 +27,9 @@ type Props = {
   onToggle: () => void;
   insetTop: number;
   actions: ToolAction[];
+  /** Top offset (from insetTop) of the first expanded item. Leaves room for a
+   *  standalone button placed under the toggle. Defaults to 116. */
+  itemBaseTop?: number;
 };
 
 /**
@@ -34,7 +37,7 @@ type Props = {
  * actions with a staggered spring pop, and collapses in reverse. Controlled so
  * the map can close it on an outside tap.
  */
-export function ToolsMenu({ open, onToggle, insetTop, actions }: Props) {
+export function ToolsMenu({ open, onToggle, insetTop, actions, itemBaseTop = 116 }: Props) {
   const spin = useSharedValue(0);
   useEffect(() => {
     spin.value = withSpring(open ? 1 : 0, { damping: 14, mass: 0.6, stiffness: 180 });
@@ -70,7 +73,7 @@ export function ToolsMenu({ open, onToggle, insetTop, actions }: Props) {
           index={i}
           count={actions.length}
           open={open}
-          top={insetTop + 116 + i * 52}
+          top={insetTop + itemBaseTop + i * 52}
         />
       ))}
     </>

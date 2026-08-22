@@ -67,11 +67,24 @@
           },
           "iosAppGroupIdentifier": "group.com.ryuufuji.pinote"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.443943401482-0frkqj6k1br3p81vi7alsng36vqs1oq8"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "supabaseUrl": "https://ehiezxoqygqbchwfraqd.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoaWV6eG9xeWdxYmNod2ZyYXFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyODQ5MDgsImV4cCI6MjEwMjg2MDkwOH0.LPei1o6oa0n3m3BrqwqYfDQM_4rKHHDG4CoVtHun6kc",
+      "googleWebClientId": "443943401482-4dfh6mno2g06eep8mtf8crcq5qgfdqe8.apps.googleusercontent.com",
+      "googleIosClientId": "443943401482-0frkqj6k1br3p81vi7alsng36vqs1oq8.apps.googleusercontent.com",
+      "appleSignInEnabled": false
     }
   }
 }

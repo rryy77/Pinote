@@ -25,6 +25,7 @@ import { TagInput } from '@/components/pinote/tag-input';
 import { WantToGoToggle } from '@/components/pinote/want-to-go-toggle';
 import { DEFAULT_CATEGORY, getCategory } from '@/constants/categories';
 import { useCollectionStore } from '@/store/useCollectionStore';
+import { useGroupStore } from '@/store/useGroupStore';
 import { useMapFocus } from '@/store/useMapFocus';
 import { useMemoStore } from '@/store/useMemoStore';
 import type { CategoryId } from '@/types/memo';
@@ -42,6 +43,7 @@ export default function NewMemoScreen() {
     prefillLng,
     wantToGo: wantToGoParam,
     from,
+    groupId,
   } = useLocalSearchParams<{
     lat?: string;
     lng?: string;
@@ -53,8 +55,10 @@ export default function NewMemoScreen() {
     prefillLng?: string;
     wantToGo?: string;
     from?: string;
+    groupId?: string;
   }>();
   const add = useMemoStore((s) => s.add);
+  const addSharedMemo = useGroupStore((s) => s.addSharedMemo);
   const markVisited = useCollectionStore((s) => s.markVisited);
   const bodyRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -86,6 +90,29 @@ export default function NewMemoScreen() {
     if (!canSave || !pin) return;
     setSaving(true);
     try {
+      // Saving to a group map goes to the cloud (photos come in a later phase).
+      if (groupId) {
+        const shared = await addSharedMemo({
+          groupId,
+          title,
+          body,
+          category,
+          lat: pin.latitude,
+          lng: pin.longitude,
+          rating,
+          wantToGo,
+          tags,
+          photoUrl: null,
+        });
+        useMapFocus.getState().requestFocus({
+          kind: 'memo',
+          id: shared.id,
+          lat: pin.latitude,
+          lng: pin.longitude,
+        });
+        router.back();
+        return;
+      }
       const memo = await add({
         title,
         body,
@@ -236,6 +263,12 @@ export default function NewMemoScreen() {
 
         <Text style={styles.label}>写真</Text>
         <PhotoField uri={photoUri} onChange={setPhotoUri} />
+        {groupId ? (
+          <View style={styles.hintRow}>
+            <Ionicons name="cloud-offline-outline" size={13} color={colors.subInk} />
+            <Text style={styles.mapHint}>共有マップでは写真の同期は今後対応します</Text>
+          </View>
+        ) : null}
 
         <Text style={styles.label}>評価</Text>
         <RatingStars value={rating} onChange={setRating} size={30} />
